@@ -15,7 +15,7 @@ The following packages are required to run the scripts:
 
 - Package [tensorboardX](https://github.com/lanpa/tensorboardX)
 
-- Dataset: please download dataset and put images into the folder data/[name of dataset]/images
+- Dataset: please download dataset and put images into the folder data/[name of dataset, miniimagenet or cub]/images
 
 - Pre-trained weights: please download the [pre-trained weights]() of the encoder if needed
 
@@ -26,7 +26,7 @@ The following packages are required to run the scripts:
 The MiniImageNet dataset is a subset of the ImageNet that includes a total number of 100 classes and 600 examples per class. We follow the [previous setup](https://github.com/twitter/meta-learning-lstm), and use 64 classes as SEEN categories, 16 and 20 as two sets of UNSEEN categories for model validation and evaluation respectively.
 
 #### CUB Dataset
-[Caltech-UCSD Birds (CUB) 200-2011 dataset](http://www.vision.caltech.edu/visipedia/CUB-200-2011.html) is initially designed for fine-grained classification. It contains in total 11,788 images of birds over 200 species. On CUB, we randomly sampled 100 species as SEEN classes, another two 50 species are used as two UNSEEN sets. We crop all images with given bounding box.
+[Caltech-UCSD Birds (CUB) 200-2011 dataset](http://www.vision.caltech.edu/visipedia/CUB-200-2011.html) is initially designed for fine-grained classification. It contains in total 11,788 images of birds over 200 species. On CUB, we randomly sampled 100 species as SEEN classes, another two 50 species are used as two UNSEEN sets. We crop all images with given bounding box before training. We only test CUB with ConvNet backbone in our work.
 
 ### Model Training
 
@@ -61,10 +61,16 @@ The train_matchnet.py takes the following command line options:
 
 - `gpu`: The index of GPU to use, default to `0`
 
-Running the command without arguments will train the models with the default hyperparamters values.
+- `use_bilstm`: This is specially designed for Matching Network. If this is true, bi-LSTM is used for embedding adaptation. Default to `False`
+
+- `lr_mul`: This is specially designed for Matching Network with bi-LSTM and FEAT. The learning rate for the top layer will be multiplied by this value (usually with faster learning rate). Default to `10`
+
+Running the command without arguments will train the models with the default hyperparamters values. Loss changes will be recorded as a tensorboard file in the ./runs folder.
 
 #### FEAT Approach
 For FEAT, the embedding of all instances in a task is adapted based on the Transformer. The learned model on MiniImageNet and CUB can be found [in this link]().
+
+- `balance`: This is the weights for the FEAT regularizer. Default to `10`
 
 ## .bib citation
 If this repo helps in your work, please cite the following paper:

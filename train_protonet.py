@@ -22,7 +22,7 @@ if __name__ == '__main__':
     parser.add_argument('--gamma', type=float, default=0.2)
     parser.add_argument('--temperature', type=float, default=1)
     parser.add_argument('--model_type', type=str, default='ConvNet', choices=['ConvNet', 'ResNet'])
-    parser.add_argument('--dataset', type=str, default='MiniImageNet', choices=['MiniImageNet', 'CUB'])
+    parser.add_argument('--dataset', type=str, default='CUB', choices=['MiniImageNet', 'CUB'])
     parser.add_argument('--init_weights', type=str, default=None)
     parser.add_argument('--gpu', default='0')
     args = parser.parse_args()
