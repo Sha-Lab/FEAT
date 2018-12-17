@@ -17,7 +17,7 @@ The following packages are required to run the scripts:
 
 - Dataset: please download dataset and put images into the folder data/[name of dataset, miniimagenet or cub]/images
 
-- Pre-trained weights: please download the [pre-trained weights]() of the encoder if needed
+- Pre-trained weights: please download the [pre-trained weights](https://hkxloux03-my.sharepoint.com/:f:/g/personal/yehj_suko_email/EjSJu5jtyqZKn6cGbXyZ2J0BKYfbYZ_mxArs7dZz1d9ACQ?e=nd0QWQ) of the encoder if needed
 
 ### Dataset
  
