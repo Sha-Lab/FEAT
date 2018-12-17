@@ -186,8 +186,8 @@ if __name__ == '__main__':
 
         vl = vl.item()
         va = va.item()
-        writer.add_scalar('data/val_loss', float(vl), global_val_count)
-        writer.add_scalar('data/val_acc', float(va), global_val_count)    
+        writer.add_scalar('data/val_loss', float(vl), epoch)
+        writer.add_scalar('data/val_acc', float(va), epoch)    
         print('epoch {}, val, loss={:.4f} acc={:.4f}'.format(epoch, vl, va))
 
         if va > trlog['max_acc']:
