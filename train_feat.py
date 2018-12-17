@@ -6,62 +6,80 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from feat.dataloader import MiniImageNet
-from feat.dataloader import CategoriesSampler
+from feat.models.feat import FEAT 
+from feat.dataloader.samplers import CategoriesSampler
 from feat.utils import pprint, set_gpu, ensure_path, Averager, Timer, count_acc, euclidean_metric, compute_confidence_interval
 from tensorboardX import SummaryWriter
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--max_epoch', type=int, default=100)
-    parser.add_argument('--shot', type=int, default=5)
+    parser.add_argument('--max_epoch', type=int, default=200)
+    parser.add_argument('--way', type=int, default=5)    
+    parser.add_argument('--shot', type=int, default=1)
     parser.add_argument('--query', type=int, default=15)
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--lr_mul', type=float, default=10) # lr is the basic learning rate, while lr * lr_mul is the lr for other parts
-    parser.add_argument('--way', type=int, default=5)
-    parser.add_argument('--temperature', type=float, default=1)
-    parser.add_argument('--balance', type=float, default=0.1)
-    parser.add_argument('--gpu', default='0')
-    parser.add_argument('--schedule', type=int, default=10)
+    parser.add_argument('--temperature', type=float, default=32)
+    parser.add_argument('--balance', type=float, default=10)
+    parser.add_argument('--step_size', type=int, default=10)
+    parser.add_argument('--gamma', type=float, default=0.5)    
     parser.add_argument('--model_type', type=str, default='ConvNet', choices=['ConvNet', 'ResNet'])
-    parser.add_argument('--gamma', type=float, default=0.5)
+    parser.add_argument('--dataset', type=str, default='MiniImageNet', choices=['MiniImageNet', 'CUB'])    
+    parser.add_argument('--init_weights', type=str, default=None)    
+    parser.add_argument('--gpu', default='0')
     args = parser.parse_args()
     pprint(vars(args))
 
     set_gpu(args.gpu)
-    args.save_path = '_'.join(['Res-Transformer', str(args.shot), str(args.query), str(args.way), 
-                               str(args.balance), str(args.lr), str(args.temperature), str(args.schedule), str(args.gamma)])
+    save_path1 = '-'.join([args.dataset, args.model_type, 'FEAT'])
+    save_path2 = '_'.join([str(args.shot), str(args.query), str(args.way), 
+                           str(args.step_size), str(args.gamma), str(args.lr), str(args.balance), str(args.temperature)])
+    args.save_path = save_path1 + '_' + save_path2    
     ensure_path(args.save_path)
 
-    trainset = MiniImageNet('train', args)
+    if args.dataset == 'MiniImageNet':
+        # Handle MiniImageNet
+        from feat.dataloader.mini_imagenet import MiniImageNet as Dataset
+    elif args.dataset == 'CUB':
+        from feat.dataloader.cub import CUB as Dataset
+    else:
+        raise ValueError('Non-supported Dataset.')
+    
+    trainset = Dataset('train', args)
     train_sampler = CategoriesSampler(trainset.label, 100, args.way, args.shot + args.query)
     train_loader = DataLoader(dataset=trainset, batch_sampler=train_sampler, num_workers=8, pin_memory=True)
 
-    valset = MiniImageNet('val', args)
+    valset = Dataset('val', args)
     val_sampler = CategoriesSampler(valset.label, 500, args.way, args.shot + args.query)
     val_loader = DataLoader(dataset=valset, batch_sampler=val_sampler, num_workers=8, pin_memory=True)
     
-    from FEATBasic import Resnet
-    model = Resnet(args, dropout = 0.5)
-    optimizer = torch.optim.SGD([{'params': model.encoder.parameters()},
-                                 {'params': model.slf_attn.parameters(), 
-                                  'lr': args.lr * args.lr_mul}], lr=args.lr, momentum=0.9, nesterov=True, weight_decay=0.0005)
+    model = FEAT(args, dropout = 0.5)    
+    if args.model_type == 'ConvNet':
+        optimizer = torch.optim.Adam([{'params': model.encoder.parameters()},
+                                     {'params': model.slf_attn.parameters(), 'lr': args.lr * args.lr_mul}], lr=args.lr)            
+    elif args.model_type == 'ResNet':
+        optimizer = torch.optim.SGD([{'params': model.encoder.parameters()},
+                                     {'params': model.slf_attn.parameters(), 'lr': args.lr * args.lr_mul}], lr=args.lr, momentum=0.9, nesterov=True, weight_decay=0.0005)                
+    else:
+        raise ValueError('No Such Encoder')
+    
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)        
     
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
         model = model.cuda()
     
-    # load pre-trained model (no FC weights)
-    model_dict = model.state_dict()
-    if args.init_weights is not None:
-        pretrained_dict = torch.load(args.init_weights)['params']
-        # remove weights for FC
-        pretrained_dict = {k.replace('module', 'encoder'): v for k, v in pretrained_dict.items()}
-        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-        print(pretrained_dict.keys())
-        model_dict.update(pretrained_dict) 
-    model.load_state_dict(model_dict)
+        # load pre-trained model
+        model_dict = model.state_dict()
+        if args.init_weights is not None:
+            pretrained_dict = torch.load(args.init_weights)['params']
+            # remove weights for FC
+            pretrained_dict = {k.replace('module', 'encoder'): v for k, v in pretrained_dict.items()}
+            pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+            print(pretrained_dict.keys())
+            model_dict.update(pretrained_dict) 
+        model.load_state_dict(model_dict)
     
     def save_model(name):
         torch.save(dict(params=model.state_dict()), osp.join(args.save_path, name + '.pth'))
@@ -74,8 +92,6 @@ if __name__ == '__main__':
     trlog['val_acc'] = []
     trlog['max_acc'] = 0.0
     trlog['max_acc_epoch'] = 0
-    bad_val_count = 0
-    initial_lr = args.lr
     
     timer = Timer()
     global_count = 0
@@ -101,6 +117,7 @@ if __name__ == '__main__':
         att_label = att_label.cuda()
             
     for epoch in range(1, args.max_epoch + 1):
+        lr_scheduler.step()
         model.train()
         tl = Averager()
         ta = Averager()
@@ -165,15 +182,7 @@ if __name__ == '__main__':
         if va >= trlog['max_acc']:
             trlog['max_acc'] = va
             trlog['max_acc_epoch'] = epoch
-            save_model('max_acc')
-        else:
-            bad_val_count += 1
-            if bad_val_count >= args.schedule:
-                bad_val_count = 0
-                # decrease the stepsize
-                initial_lr *= args.gamma
-                for param_group in optimizer.param_groups:
-                    param_group['lr'] = initial_lr                
+            save_model('max_acc')          
                 
         trlog['train_loss'].append(tl)
         trlog['train_acc'].append(ta)
@@ -189,7 +198,7 @@ if __name__ == '__main__':
 
     # Test Phase
     trlog = torch.load(osp.join(args.save_path, 'trlog'))
-    test_set = MiniImageNet('test', args)
+    test_set = Dataset('test', args)
     sampler = CategoriesSampler(test_set.label, 10000, args.way, args.shot + args.query)
     loader = DataLoader(test_set, batch_sampler=sampler, num_workers=8, pin_memory=True)
     test_acc_record = np.zeros((10000,))

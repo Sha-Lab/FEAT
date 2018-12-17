@@ -2,10 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from feat.networks import *
 
 # for Matching Network
-# change from https://github.com/gitabcworld/MatchingNetworks/, not totally the same as the paper
+# change from https://github.com/gitabcworld/MatchingNetworks/
+# biLSTM is used to implement the embedding adaptation
     
 class BidirectionalLSTM(nn.Module):
     def __init__(self, layer_sizes, batch_size, vector_dim):
@@ -50,16 +50,18 @@ class MatchNet(nn.Module):
         self.args = args # information about Shot and Way
         
         if args.model_type == 'ConvNet':
+            from feat.networks.convnet import ConvNet
             self.encoder = ConvNet()
             layer_size = 32
         elif args.model_type == 'ResNet':
+            from feat.networks.resnet import ResNet
             self.encoder = ResNet()
             layer_size = 320
         else:
             raise ValueError('')
 
         if self.use_bilstm:
-            self.bilstm = BidirectionalLSTM(layer_sizes=[ layer_size ], 
+            self.bilstm = BidirectionalLSTM(layer_sizes=[layer_size], 
                 batch_size=args.query * args.way, 
                 vector_dim=z_dim)
 
@@ -75,7 +77,7 @@ class MatchNet(nn.Module):
         query_extend = query_set.unsqueeze(1) # KqN x 1 x d
         combined = torch.cat([support_extend, query_extend], 1) # KqN x (KN + 1) x d
         
-        if self.bilstm:
+        if self.use_bilstm:
             # FCE embedding
             combined = combined.permute([1,0,2]) # (KN + 1) x KqN x d
             combined, hn, cn = self.bilstm(combined)

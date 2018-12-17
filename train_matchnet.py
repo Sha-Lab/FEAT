@@ -5,66 +5,88 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-
-from feat.dataloader import MiniImageNet
-from feat.dataloader import CategoriesSampler
+from feat.dataloader.samplers import CategoriesSampler
+from feat.models.matchnet import MatchNet 
 from feat.utils import pprint, set_gpu, ensure_path, Averager, Timer, count_acc, euclidean_metric, compute_confidence_interval
 from tensorboardX import SummaryWriter
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--max_epoch', type=int, default=100)
-    parser.add_argument('--shot', type=int, default=5)
+    parser.add_argument('--max_epoch', type=int, default=200)
+    parser.add_argument('--way', type=int, default=5)    
+    parser.add_argument('--shot', type=int, default=1)
     parser.add_argument('--query', type=int, default=15)
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--lr_mul', type=float, default=1) # lr is the basic learning rate, while lr * lr_mul is the lr for other parts
-    parser.add_argument('--way', type=int, default=5)
+    parser.add_argument('--step_size', type=int, default=10)
+    parser.add_argument('--gamma', type=float, default=0.2)    
     parser.add_argument('--temperature', type=float, default=1)
     parser.add_argument('--use_bilstm', type=bool, default=False)
     parser.add_argument('--model_type', type=str, default='ConvNet', choices=['ConvNet', 'ResNet'])
+    parser.add_argument('--dataset', type=str, default='MiniImageNet', choices=['MiniImageNet', 'CUB'])    
+    parser.add_argument('--init_weights', type=str, default=None)    
     parser.add_argument('--gpu', default='0')
     args = parser.parse_args()
     pprint(vars(args))
 
     set_gpu(args.gpu)
-    args.save_path = '_'.join(['Res-MatchingNet', str(args.shot), str(args.query), 
-                           str(args.way), str(args.lr), str(args.temperature)])
+    save_path1 = '-'.join([args.dataset, args.model_type, 'MatchNet'])
+    save_path2 = '_'.join([str(args.shot), str(args.query), str(args.way), 
+                           str(args.step_size), str(args.gamma), str(args.lr), str(args.temperature)])
     if args.use_bilstm:
-        args.save_path = args.save_path + '_' + str(args.lr_mul) + '_BiLSTM'
+        args.save_path = save_path1 + '_' + save_path2 + '_' + str(args.lr_mul) + '_BiLSTM'
+    else:
+        args.save_path = save_path1 + '_' + save_path2
     ensure_path(args.save_path)
 
-    trainset = MiniImageNet('train', args)
+    if args.dataset == 'MiniImageNet':
+        # Handle MiniImageNet
+        from feat.dataloader.mini_imagenet import MiniImageNet as Dataset
+    elif args.dataset == 'CUB':
+        from feat.dataloader.cub import CUB as Dataset
+    else:
+        raise ValueError('Non-supported Dataset.')
+    
+    trainset = Dataset('train', args)
     train_sampler = CategoriesSampler(trainset.label, 100, args.way, args.shot + args.query)
     train_loader = DataLoader(dataset=trainset, batch_sampler=train_sampler, num_workers=8, pin_memory=True)
 
-    valset = MiniImageNet('val', args)
+    valset = Dataset('val', args)
     val_sampler = CategoriesSampler(valset.label, 500, args.way, args.shot + args.query)
     val_loader = DataLoader(dataset=valset, batch_sampler=val_sampler, num_workers=8, pin_memory=True)
     
-    from MatchingBasic import MatchingNetworkConv
     model = MatchNet(args)
-    if args.use_bilstm:
-        optimizer = torch.optim.SGD([{'params': model.encoder.parameters()},
-                                      {'params': model.lstm.parameters(), 'lr': args.lr * args.lr_mul}], lr=args.lr, momentum=0.9, nesterov=True, weight_decay=0.0005)    
+    if args.model_type == 'ConvNet':
+        if args.use_bilstm:
+            optimizer = torch.optim.Adam([{'params': model.encoder.parameters()},
+                                         {'params': model.lstm.parameters(), 'lr': args.lr * args.lr_mul}], lr=args.lr)            
+        else:
+            optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    elif args.model_type == 'ResNet':
+        if args.use_bilstm:
+            optimizer = torch.optim.SGD([{'params': model.encoder.parameters()},
+                                         {'params': model.lstm.parameters(), 'lr': args.lr * args.lr_mul}], lr=args.lr, momentum=0.9, nesterov=True, weight_decay=0.0005)                
+        else:        
+            optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, nesterov=True, weight_decay=0.0005)            
     else:
-        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, nesterov=True, weight_decay=0.0005)            
+        raise ValueError('No Such Encoder')
     
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.2)        
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)        
     
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
         model = model.cuda()
     
-    # load pre-trained model (no FC weights)
-    model_dict = model.state_dict()
-    if args.init_weights is not None:
-        pretrained_dict = torch.load(args.init_weights)['params']
-        # remove weights for FC
-        pretrained_dict = {k.replace('module', 'encoder'): v for k, v in pretrained_dict.items()}
-        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-        print(pretrained_dict.keys())
-        model_dict.update(pretrained_dict)
-    model.load_state_dict(model_dict)
+        # load pre-trained model (no FC weights)
+        model_dict = model.state_dict()
+        if args.init_weights is not None:
+            pretrained_dict = torch.load(args.init_weights)['params']
+            # remove weights for FC
+            pretrained_dict = {k.replace('module', 'encoder'): v for k, v in pretrained_dict.items()}
+            pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+            print(pretrained_dict.keys())
+            model_dict.update(pretrained_dict)
+        model.load_state_dict(model_dict)
     
     def save_model(name):
         torch.save(dict(params=model.state_dict()), osp.join(args.save_path, name + '.pth'))
@@ -159,7 +181,6 @@ if __name__ == '__main__':
                 # compute loss
                 loss = F.cross_entropy(prediction, label)
                 acc = count_acc(prediction, label)
-    
                 vl.add(loss.item())
                 va.add(acc)
 
@@ -188,7 +209,7 @@ if __name__ == '__main__':
 
     # Test Phase
     trlog = torch.load(osp.join(args.save_path, 'trlog'))
-    test_set = MiniImageNet('test', args)
+    test_set = Dataset('test', args)
     sampler = CategoriesSampler(test_set.label, 10000, args.way, args.shot + args.query)
     loader = DataLoader(test_set, batch_sampler=sampler, num_workers=8, pin_memory=True)
     test_acc_record = np.zeros((10000,))

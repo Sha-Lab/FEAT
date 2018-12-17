@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from ResNetW import ResNet
 
 class ScaledDotProductAttention(nn.Module):
     ''' Scaled Dot-Product Attention '''
@@ -77,9 +76,11 @@ class FEAT(nn.Module):
     def __init__(self, args, dropout=0.2):
         super().__init__()
         if args.model_type == 'ConvNet':
+            from feat.networks.convnet import ConvNet
             self.encoder = ConvNet()
             z_dim = 64
         elif args.model_type == 'ResNet':
+            from feat.networks.resnet import ResNet
             self.encoder = ResNet()
             z_dim = 640
         else:
