@@ -11,13 +11,11 @@ def set_gpu(x):
 
 
 def ensure_path(path):
-    #if os.path.exists(path):
-        ## if input('{} exists, remove? ([y]/n)'.format(path)) != 'n':
-        #shutil.rmtree(path)
-        #os.mkdir(path)
-    #else:
-        #os.mkdir(path)
-    if not os.path.exists(path):
+    if os.path.exists(path):
+        if input('{} exists, remove? ([y]/n)'.format(path)) != 'n':
+            shutil.rmtree(path)
+            os.mkdir(path)
+    else:
         os.mkdir(path)
 
 class Averager():

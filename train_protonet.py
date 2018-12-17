@@ -5,61 +5,75 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-
-from feat.dataloader import MiniImageNet
-from feat.dataloader import CategoriesSampler
-from feat.utils import pprint, set_gpu, ensure_path, Averager, Timer, count_acc, euclidean_metric, compute_confidence_interval
+from feat.dataloader.samplers import CategoriesSampler
+from feat.models.protonet import ProtoNet
+from feat.utils import pprint, set_gpu, ensure_path, Averager, Timer, count_acc, compute_confidence_interval
 from tensorboardX import SummaryWriter
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--max_epoch', type=int, default=100)
+    parser.add_argument('--max_epoch', type=int, default=200)
     parser.add_argument('--shot', type=int, default=1)
     parser.add_argument('--query', type=int, default=15)
-    parser.add_argument('--train_way', type=int, default=5)
+    parser.add_argument('--way', type=int, default=5)
     parser.add_argument('--lr', type=float, default=0.0001)
-    parser.add_argument('--test_way', type=int, default=5)
+    parser.add_argument('--step_size', type=int, default=10)
+    parser.add_argument('--gamma', type=float, default=0.2)
     parser.add_argument('--temperature', type=float, default=1)
     parser.add_argument('--model_type', type=str, default='ConvNet', choices=['ConvNet', 'ResNet'])
+    parser.add_argument('--dataset', type=str, default='MiniImageNet', choices=['MiniImageNet', 'CUB'])
     parser.add_argument('--init_weights', type=str, default=None)
     parser.add_argument('--gpu', default='0')
     args = parser.parse_args()
     pprint(vars(args))
 
     set_gpu(args.gpu)
-    args.model = 'res'
-    args.save_path = '_'.join(['Res-ProtoNet', str(args.shot), str(args.query), str(args.train_way), 
-                               str(args.test_way), str(args.lr), str(args.temperature)])
+    save_path1 = '-'.join([args.dataset, args.model_type, 'ProtoNet'])
+    save_path2 = '_'.join([str(args.shot), str(args.query), str(args.way), 
+                               str(args.step_size), str(args.gamma), str(args.lr), str(args.temperature)])
+    args.save_path = save_path1 + '_' + save_path2
     ensure_path(args.save_path)
 
-    trainset = MiniImageNet('train', args)
-    train_sampler = CategoriesSampler(trainset.label, 100, args.train_way, args.shot + args.query)
+    if args.dataset == 'MiniImageNet':
+        # Handle MiniImageNet
+        from feat.dataloader.mini_imagenet import MiniImageNet as Dataset
+    elif args.dataset == 'CUB':
+        from feat.dataloader.cub import CUB as Dataset
+    else:
+        raise ValueError('Non-supported Dataset.')
+
+    trainset = Dataset('train', args)
+    train_sampler = CategoriesSampler(trainset.label, 100, args.way, args.shot + args.query)
     train_loader = DataLoader(dataset=trainset, batch_sampler=train_sampler, num_workers=8, pin_memory=True)
 
-    valset = MiniImageNet('val', args)
-    val_sampler = CategoriesSampler(valset.label, 500, args.test_way, args.shot + args.query)
+    valset = Dataset('val', args)
+    val_sampler = CategoriesSampler(valset.label, 500, args.way, args.shot + args.query)
     val_loader = DataLoader(dataset=valset, batch_sampler=val_sampler, num_workers=8, pin_memory=True)
     
-    from ProtoNetBasic import Convnet
-    model = Convnet()
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, nesterov=True, weight_decay=0.0005)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.2)        
+    model = ProtoNet(args)
+    if args.model_type == 'ConvNet':
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    elif args.model_type == 'ResNet':
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, nesterov=True, weight_decay=0.0005)
+    else:
+        raise ValueError('No Such Encoder')
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)        
     
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
         model = model.cuda()
     
-    # load pre-trained model (no FC weights)
-    model_dict = model.state_dict()
-    if args.init_weights is not None:
-        pretrained_dict = torch.load(args.init_weights)['params']
-        # remove weights for FC
-        pretrained_dict = {k.replace('module', 'encoder'): v for k, v in pretrained_dict.items()}
-        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-        print(pretrained_dict.keys())
-        model_dict.update(pretrained_dict) 
-    model.load_state_dict(model_dict)
+        # load pre-trained model (no FC weights)
+        model_dict = model.state_dict()
+        if args.init_weights is not None:
+            pretrained_dict = torch.load(args.init_weights)['params']
+            # remove weights for FC
+            pretrained_dict = {k.replace('module', 'encoder'): v for k, v in pretrained_dict.items()}
+            pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+            print(pretrained_dict.keys())
+            model_dict.update(pretrained_dict) 
+        model.load_state_dict(model_dict)
     
     def save_model(name):
         torch.save(dict(params=model.state_dict()), osp.join(args.save_path, name + '.pth'))
@@ -83,7 +97,7 @@ if __name__ == '__main__':
         tl = Averager()
         ta = Averager()
 
-        label = torch.arange(args.train_way).repeat(args.query)
+        label = torch.arange(args.way).repeat(args.query)
         if torch.cuda.is_available():
             label = label.type(torch.cuda.LongTensor)
         else:
@@ -95,12 +109,9 @@ if __name__ == '__main__':
                 data, _ = [_.cuda() for _ in batch]
             else:
                 data = batch[0]
-            p = args.shot * args.train_way
+            p = args.shot * args.way
             data_shot, data_query = data[:p], data[p:]
-
-            proto = model(data_shot)
-            proto = proto.reshape(args.shot, args.train_way, -1).mean(dim=0)
-            logits = euclidean_metric(model(data_query), proto) / args.temperature
+            logits = model(data_shot, data_query)
             loss = F.cross_entropy(logits, label)
             acc = count_acc(logits, label)
             writer.add_scalar('data/loss', float(loss), global_count)
@@ -123,7 +134,7 @@ if __name__ == '__main__':
         vl = Averager()
         va = Averager()
 
-        label = torch.arange(args.test_way).repeat(args.query)
+        label = torch.arange(args.way).repeat(args.query)
         if torch.cuda.is_available():
             label = label.type(torch.cuda.LongTensor)
         else:
@@ -136,12 +147,10 @@ if __name__ == '__main__':
                     data, _ = [_.cuda() for _ in batch]
                 else:
                     data = batch[0]
-                p = args.shot * args.test_way
+                p = args.shot * args.way
                 data_shot, data_query = data[:p], data[p:]
     
-                proto = model(data_shot)
-                proto = proto.reshape(args.shot, args.test_way, -1).mean(dim=0)
-                logits = euclidean_metric(model(data_query), proto) / args.temperature
+                logits = model(data_shot, data_query)
                 loss = F.cross_entropy(logits, label)
                 acc = count_acc(logits, label)    
                 vl.add(loss.item())
@@ -172,8 +181,8 @@ if __name__ == '__main__':
 
     # Test Phase
     trlog = torch.load(osp.join(args.save_path, 'trlog'))
-    test_set = MiniImageNet('test', args)
-    sampler = CategoriesSampler(test_set.label, 10000, args.test_way, args.shot + args.query)
+    test_set = Dataset('test', args)
+    sampler = CategoriesSampler(test_set.label, 10000, args.way, args.shot + args.query)
     loader = DataLoader(test_set, batch_sampler=sampler, num_workers=8, pin_memory=True)
     test_acc_record = np.zeros((10000,))
 
@@ -181,7 +190,7 @@ if __name__ == '__main__':
     model.eval()
 
     ave_acc = Averager()
-    label = torch.arange(args.test_way).repeat(args.query)
+    label = torch.arange(args.way).repeat(args.query)
     if torch.cuda.is_available():
         label = label.type(torch.cuda.LongTensor)
     else:
@@ -192,19 +201,15 @@ if __name__ == '__main__':
             data, _ = [_.cuda() for _ in batch]
         else:
             data = batch[0]
-        k = args.test_way * args.shot
+        k = args.way * args.shot
         data_shot, data_query = data[:k], data[k:]
 
-        x = model(data_shot)
-        x = x.reshape(args.shot, args.test_way, -1).mean(dim=0)
-        p = x
-        logits = euclidean_metric(model(data_query), p)
+        logits = model(data_shot, data_query)
         acc = count_acc(logits, label)
         ave_acc.add(acc)
         test_acc_record[i-1] = acc
         print('batch {}: {:.2f}({:.2f})'.format(i, ave_acc.item() * 100, acc * 100))
         
-    
     m, pm = compute_confidence_interval(test_acc_record)
     print('Val Best Acc {:.4f}, Test Acc {:.4f}'.format(trlog['max_acc'], ave_acc.item()))
     print('Test Acc {:.4f} + {:.4f}'.format(m, pm))
