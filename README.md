@@ -1,5 +1,5 @@
 # FEAT
-The code repository for "@[Learning Embedding Adaptation for Few-Shot Learning](https://arxiv.org/abs/1812.03664)" in PyTorch
+The code repository for "[Learning Embedding Adaptation for Few-Shot Learning](https://arxiv.org/abs/1812.03664)" in PyTorch
 
 ## Few-Shot Learning via Transformer
 
@@ -7,19 +7,31 @@ Few-shot learning methods address this challenge by learning an instance embeddi
 
 ![Few-Shot Learning via Transformer](imgs/teaser.PNG)
 
+### Prerequisites
+
+The following packages are required to run the scripts:
+
+- [PyTorch-0.4 and torchvision](https://pytorch.org)
+
+- Package [tensorboardX](https://github.com/lanpa/tensorboardX)
+
+- Dataset: please download dataset and put images into the folder data/[name of dataset]/images
+
+- Pre-trained weights: please download the [pre-trained weights]() of the encoder if needed
+
 ### Dataset
  
 #### MiniImageNet Dataset
 
-The MiniImageNet dataset is a subset of the ImageNet that includes a total number of 100 classes and 600 examples per class. We follow the [@previous setup](https://github.com/twitter/meta-learning-lstm), and use 64 classes as SEEN categories, 16 and 20 as two sets of UNSEEN categories for model validation and evaluation respectively.
+The MiniImageNet dataset is a subset of the ImageNet that includes a total number of 100 classes and 600 examples per class. We follow the [previous setup](https://github.com/twitter/meta-learning-lstm), and use 64 classes as SEEN categories, 16 and 20 as two sets of UNSEEN categories for model validation and evaluation respectively.
 
 #### CUB Dataset
-[@Caltech-UCSD Birds (CUB) 200-2011 dataset](http://www.vision.caltech.edu/visipedia/CUB-200-2011.html) is initially designed for fine-grained classification. It contains in total 11,788 images of birds over 200 species. On CUB, we randomly sampled 100 species as SEEN classes, another two 50 species are used as two UNSEEN sets.
+[Caltech-UCSD Birds (CUB) 200-2011 dataset](http://www.vision.caltech.edu/visipedia/CUB-200-2011.html) is initially designed for fine-grained classification. It contains in total 11,788 images of birds over 200 species. On CUB, we randomly sampled 100 species as SEEN classes, another two 50 species are used as two UNSEEN sets. We crop all images with given bounding box.
 
 ### Model Training
 
 #### Baseline Methods
-We implement two baseline approaches in this repo, i.e., the [@Matching Network](https://arxiv.org/abs/1606.04080) and [@Prototypical Network](https://arxiv.org/abs/1703.05175). To train the them on this task, cd into this repo's root folder and execute:
+We implement two baseline approaches in this repo, i.e., the [Matching Network](https://arxiv.org/abs/1606.04080) and [Prototypical Network](https://arxiv.org/abs/1703.05175). To train the them on this task, cd into this repo's root folder and execute:
 
     $ python train_matchnet.py (or python train_protonet.py)
 
@@ -52,7 +64,7 @@ The train_matchnet.py takes the following command line options:
 Running the command without arguments will train the models with the default hyperparamters values.
 
 #### FEAT Approach
-
+For FEAT, the embedding of all instances in a task is adapted based on the Transformer. The learned model on MiniImageNet and CUB can be found [in this link]().
 
 ## .bib citation
 If this repo helps in your work, please cite the following paper:
@@ -71,3 +83,10 @@ If this repo helps in your work, please cite the following paper:
 
 ## Acknowledgment
 We thank following repos providing helpful components/functions in our work.
+- [ProtoNet](https://github.com/cyvius96/prototypical-network-pytorch)
+
+- [MatchingNet](https://github.com/gitabcworld/MatchingNetworks)
+
+- [PFA](https://github.com/joe-siyuan-qiao/FewShot-CVPR/)
+
+- [Transformer](https://github.com/jadore801120/attention-is-all-you-need-pytorch)
