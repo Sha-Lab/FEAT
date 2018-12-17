@@ -1,81 +1,71 @@
 # FEAT
-The code repository for "Learning Embedding Adaptation for Few-Shot Learning" in PyTorch
+The code repository for "@[Learning Embedding Adaptation for Few-Shot Learning](https://arxiv.org/abs/1812.03664)" in PyTorch
 
 ## Few-Shot Learning via Transformer
 
 Few-shot learning methods address this challenge by learning an instance embedding function from seen classes, and apply the function to instances from unseen classes with limited labels. This style of transfer learning is task-agnostic: the embedding function is not learned optimally discriminative with respect to the unseen classes, where discerning among them is the target task. In this work, we propose a novel approach to adapt the embedding model to the target classification task, yielding embeddings that are task-specific and are discriminative. To this end, we employ a type of self-attention mechanism called Transformer to transform the embeddings from task-agnostic to task-specific by focusing on relating instances from the test instances to the training instances in both seen and unseen classes.
 
-![Few-Shot Learning via Transformer](imgs/teaser.pdf)
+![Few-Shot Learning via Transformer](imgs/teaser.PNG)
 
-## MiniImageNet Dataset
+### Dataset
+ 
+#### MiniImageNet Dataset
 
 The MiniImageNet dataset is a subset of the ImageNet that includes a total number of 100 classes and 600 examples per class. We follow the [@previous setup](https://github.com/twitter/meta-learning-lstm), and use 64 classes as SEEN categories, 16 and 20 as two sets of UNSEEN categories for model validation and evaluation respectively.
 
-### Dataset splits
+#### CUB Dataset
+[@Caltech-UCSD Birds (CUB) 200-2011 dataset](http://www.vision.caltech.edu/visipedia/CUB-200-2011.html) is initially designed for fine-grained classification. It contains in total 11,788 images of birds over 200 species. On CUB, we randomly sampled 100 species as SEEN classes, another two 50 species are used as two UNSEEN sets.
 
-We implemented the Vynials splitting method as in [[Matching Networks for One Shot Learning](https://papers.nips.cc/paper/6385-matching-networks-for-one-shot-learning)]. That sould be the same method used in the paper (in fact I download the split files from the "offical" [repo](https://github.com/jakesnell/prototypical-networks/tree/master/data/omniglot/splits/vinyals)). We then apply the same rotations there described. In this way we should be able to compare results obtained by running this code with results described in the reference paper.
+### Model Training
 
-## Training
+#### Baseline Methods
+We implement two baseline approaches in this repo, i.e., the [@Matching Network](https://arxiv.org/abs/1606.04080) and [@Prototypical Network](https://arxiv.org/abs/1703.05175). To train the them on this task, cd into this repo's root folder and execute:
 
-To train the Protonet on this task, cd into this repo's `src` root folder and execute:
+    $ python train_matchnet.py (or python train_protonet.py)
 
-    $ python train.py
+The train_matchnet.py takes the following command line options:
 
+- `max_epoch`: The maximum number of training epochs, default to `200`
 
-The script takes the following command line options:
+- `way`: The number of classes in a few-shot task, default to `5`
 
-- `dataset_root`: the root directory where tha dataset is stored, default to `'../dataset'`
+- `shot`: Number of instances in each class in a few-shot task, default to `1`
 
-- `nepochs`: number of epochs to train for, default to `100`
+- `query`: Number of instances in each class to evaluate the performance in both meta-training and meta-test stages, default to `15`
 
-- `learning_rate`: learning rate for the model, default to `0.001`
+- `lr`: Learning rate for the model, default to `0.0001` with pre-trained model
 
-- `lr_scheduler_step`: StepLR learning rate scheduler step, default to `20`
+- `step_size`: StepLR learning rate scheduler step, default to `20`
 
-- `lr_scheduler_gamma`: StepLR learning rate scheduler gamma, default to `0.5`
+- `gamma`: StepLR learning rate ratio, default to `0.2`
 
-- `iterations`: number of episodes per epoch. default to `100`
+- `temperature`: Temperature over the logits, we divide logits with this value, default to `1`
 
-- `classes_per_it_tr`: number of random classes per episode for training. default to `60`
+- `model_type`: Two types of encoder, i.e., the convolution network and ResNet, default to `ConvNet`
 
-- `num_support_tr`: number of samples per class to use as support for training. default to `5`
+- `dataset`: Option for the dataset (MiniImageNet or CUB), default to `MiniImageNet`
 
-- `num_query_tr`: nnumber of samples per class to use as query for training. default to `5`
+- `init_weights`: The path to the initial weights, default to `None`
 
-- `classes_per_it_val`: number of random classes per episode for validation. default to `5`
+- `gpu`: The index of GPU to use, default to `0`
 
-- `num_support_val`: number of samples per class to use as support for validation. default to `5`
+Running the command without arguments will train the models with the default hyperparamters values.
 
-- `num_query_val`: number of samples per class to use as query for validation. default to `15`
+#### FEAT Approach
 
-- `manual_seed`: input for the manual seeds initializations, default to `7`
-
-- `cuda`: enables cuda (store `True`)
-
-Running the command without arguments will train the models with the default hyperparamters values (producing results shown above).
-
-
-## Helpful links
-
- - http://pytorch.org/docs/master/data.html: Official PyTroch documentation about Dataset classes, Dataloaders and Samplers
 
 ## .bib citation
-cite the paper as follows (copied-pasted it from arxiv for you):
+If this repo helps in your work, please cite the following paper:
 
-    @article{DBLP:journals/corr/SnellSZ17,
-      author    = {Jake Snell and
-                   Kevin Swersky and
-                   Richard S. Zemel},
-      title     = {Prototypical Networks for Few-shot Learning},
+    @article{DBLP:YeHZS2018Learning,
+      author    = {Han-Jia Ye and
+                   Hexiang Hu and
+                   De-Chuan Zhan and
+                   Fei Sha},
+      title     = {Learning Embedding Adaptation for Few-Shot Learning},
       journal   = {CoRR},
-      volume    = {abs/1703.05175},
-      year      = {2017},
-      url       = {http://arxiv.org/abs/1703.05175},
-      archivePrefix = {arXiv},
-      eprint    = {1703.05175},
-      timestamp = {Wed, 07 Jun 2017 14:41:38 +0200},
-      biburl    = {http://dblp.org/rec/bib/journals/corr/SnellSZ17},
-      bibsource = {dblp computer science bibliography, http://dblp.org}
+      volume    = {abs/1812.03664},
+      year      = {2018}
     }
 
 
