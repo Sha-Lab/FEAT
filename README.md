@@ -72,6 +72,8 @@ For FEAT, the embedding of all instances in a task is adapted based on the Trans
 
 - `balance`: This is the weights for the FEAT regularizer. Default to `10`
 
+    $ python train_feat.py
+
 ## .bib citation
 If this repo helps in your work, please cite the following paper:
 

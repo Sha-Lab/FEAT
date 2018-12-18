@@ -18,14 +18,17 @@ if __name__ == '__main__':
     parser.add_argument('--way', type=int, default=5)    
     parser.add_argument('--shot', type=int, default=1)
     parser.add_argument('--query', type=int, default=15)
-    parser.add_argument('--lr', type=float, default=0.001)
+    parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--lr_mul', type=float, default=10) # lr is the basic learning rate, while lr * lr_mul is the lr for other parts
-    parser.add_argument('--temperature', type=float, default=32)
+    parser.add_argument('--temperature', type=float, default=1)
     parser.add_argument('--balance', type=float, default=10)
     parser.add_argument('--step_size', type=int, default=10)
     parser.add_argument('--gamma', type=float, default=0.5)    
     parser.add_argument('--model_type', type=str, default='ConvNet', choices=['ConvNet', 'ResNet'])
     parser.add_argument('--dataset', type=str, default='MiniImageNet', choices=['MiniImageNet', 'CUB'])    
+    # MiniImageNet, ConvNet, './saves/initialization/miniimagenet/con-pre.pth'
+    # MiniImageNet, ResNet, './saves/initialization/miniimagenet/res-pre.pth'
+    # CUB, ConvNet, './saves/initialization/cub/con-pre.pth'    
     parser.add_argument('--init_weights', type=str, default=None)    
     parser.add_argument('--gpu', default='0')
     args = parser.parse_args()
@@ -66,20 +69,20 @@ if __name__ == '__main__':
     
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)        
     
+    # load pre-trained model (no FC weights)
+    model_dict = model.state_dict()
+    if args.init_weights is not None:
+        pretrained_dict = torch.load(args.init_weights)['params']
+        # remove weights for FC
+        pretrained_dict = {'encoder.'+k: v for k, v in pretrained_dict.items()}
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+        print(pretrained_dict.keys())
+        model_dict.update(pretrained_dict) 
+    model.load_state_dict(model_dict)    
+    
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
         model = model.cuda()
-    
-        # load pre-trained model
-        model_dict = model.state_dict()
-        if args.init_weights is not None:
-            pretrained_dict = torch.load(args.init_weights)['params']
-            # remove weights for FC
-            pretrained_dict = {k.replace('module', 'encoder'): v for k, v in pretrained_dict.items()}
-            pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-            print(pretrained_dict.keys())
-            model_dict.update(pretrained_dict) 
-        model.load_state_dict(model_dict)
     
     def save_model(name):
         torch.save(dict(params=model.state_dict()), osp.join(args.save_path, name + '.pth'))

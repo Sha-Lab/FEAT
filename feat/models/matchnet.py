@@ -63,7 +63,7 @@ class MatchNet(nn.Module):
         if self.use_bilstm:
             self.bilstm = BidirectionalLSTM(layer_sizes=[layer_size], 
                 batch_size=args.query * args.way, 
-                vector_dim=z_dim)
+                vector_dim=layer_size * 2)
 
     def forward(self, support_set, query_set):
         # produce embeddings for support set images
