@@ -17,7 +17,7 @@ The following packages are required to run the scripts:
 
 - Dataset: please download dataset and put images into the folder data/[name of dataset, miniimagenet or cub]/images
 
-- Pre-trained weights: please download the [pre-trained weights](https://hkxloux03-my.sharepoint.com/:f:/g/personal/yehj_suko_email/EjSJu5jtyqZKn6cGbXyZ2J0BKYfbYZ_mxArs7dZz1d9ACQ?e=nd0QWQ) of the encoder if needed
+- Pre-trained weights: please download the [pre-trained weights](https://drive.google.com/open?id=14Jn1t9JxH-CxjfWy4JmVpCxkC9cDqqfE) of the encoder if needed
 
 ### Dataset
  
@@ -68,11 +68,17 @@ The train_matchnet.py takes the following command line options:
 Running the command without arguments will train the models with the default hyperparamters values. Loss changes will be recorded as a tensorboard file in the ./runs folder.
 
 #### FEAT Approach
-For FEAT, the embedding of all instances in a task is adapted based on the Transformer. The learned model on MiniImageNet and CUB can be found [in this link]().
+For FEAT, the embedding of all instances in a task is adapted based on the Transformer. The learned model on MiniImageNet and CUB can be found [in this link](https://drive.google.com/open?id=1ZjkiEJh_96VYNWCOXUGsPuesLaFzV_z9).
 
 - `balance`: This is the weights for the FEAT regularizer. Default to `10`
 
-    $ python train_feat.py
+For example, to train the 1-shot 5-way FEAT model with ConvNet backbone on MiniImageNet:
+
+    $ python train_feat.py --lr 0.0001 --temperature 32 --max_epoch 200 --model_type ConvNet --dataset MiniImageNet --init_weights ./saves/initialization/miniimagenet/con-pre.pth --shot 1 --way 5 --gpu 0 --balance 10 --step_size 50 --gamma 0.1 --lr_mul 10
+
+to train the 1-shot 5-way FEAT model with ResNet backbone on MiniImageNet:
+    $ python train_feat.py --lr 0.0001 --temperature 128 --max_epoch 100 --model_type ResNet --dataset MiniImageNet --init_weights ./saves/initialization/miniimagenet/res-pre.pth --shot 1 --way 5 --gpu 0 --balance 10 --step_size 10 --gamma 0.5 --lr_mul 10
+
 
 ## .bib citation
 If this repo helps in your work, please cite the following paper:
