@@ -1,4 +1,4 @@
-# FEAT
+# Learning Embedding Adaptation for Few-Shot Learning
 The code repository for "[Learning Embedding Adaptation for Few-Shot Learning](https://arxiv.org/abs/1812.03664)" in PyTorch
 
 ## Few-Shot Learning via Transformer
