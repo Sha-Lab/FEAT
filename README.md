@@ -17,7 +17,7 @@ The following packages are required to run the scripts:
 
 - Dataset: please download dataset and put images into the folder data/[name of dataset, miniimagenet or cub]/images
 
-- Pre-trained weights: please download the [pre-trained weights](https://drive.google.com/open?id=14Jn1t9JxH-CxjfWy4JmVpCxkC9cDqqfE) of the encoder if needed
+- Pre-trained weights: please download the [pre-trained weights](https://drive.google.com/open?id=14Jn1t9JxH-CxjfWy4JmVpCxkC9cDqqfE) of the encoder if needed. The pre-trained weights can be downloaded by the script download_weight.sh
 
 ### Dataset
  
@@ -80,6 +80,12 @@ to train the 1-shot 5-way FEAT model with ResNet backbone on MiniImageNet:
 
     $ python train_feat.py --lr 0.0001 --temperature 128 --max_epoch 100 --model_type ResNet --dataset MiniImageNet --init_weights ./saves/initialization/miniimagenet/res-pre.pth --shot 1 --way 5 --gpu 0 --balance 10 --step_size 10 --gamma 0.5 --lr_mul 10
 
+### Model Training
+The train_xxx.py scripts will evaluate the model with best validation accuracy at last. Meanwhile, a given model can also be evaluated by the eval_xxx.py, with options similar to the training scripts. For example, for a ConvNet model at "./saves/feat-model/xx.pth", it can be evaluated for 1-shot 5-way tasks by:
+
+    $ python eval_feat.py --model_type ConvNet --dataset MiniImageNet --model_path ./saves/FEAT-Models/MiniIMageNet-Conv-1-Shot-5-Way.pth --shot 1 --way 5 --gpu 0
+
+We assume the input model is a GPU stored model.
 
 ## .bib citation
 If this repo helps in your work, please cite the following paper:
