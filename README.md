@@ -80,7 +80,7 @@ to train the 1-shot 5-way FEAT model with ResNet backbone on MiniImageNet:
 
     $ python train_feat.py --lr 0.0001 --temperature 128 --max_epoch 100 --model_type ResNet --dataset MiniImageNet --init_weights ./saves/initialization/miniimagenet/res-pre.pth --shot 1 --way 5 --gpu 0 --balance 10 --step_size 10 --gamma 0.5 --lr_mul 10
 
-### Model Training
+### Model Evaluation
 The train_xxx.py scripts will evaluate the model with best validation accuracy at last. Meanwhile, a given model can also be evaluated by the eval_xxx.py, with options similar to the training scripts. For example, for a ConvNet model at "./saves/feat-model/xx.pth", it can be evaluated for 1-shot 5-way tasks by:
 
     $ python eval_feat.py --model_type ConvNet --dataset MiniImageNet --model_path ./saves/FEAT-Models/MiniIMageNet-Conv-1-Shot-5-Way.pth --shot 1 --way 5 --gpu 0
