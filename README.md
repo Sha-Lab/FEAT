@@ -90,9 +90,8 @@ We implement two baseline approaches in this repo, i.e., the [Matching Network](
 
     $ python train_matchnet.py (or python train_protonet.py)
 
----
-PS. The train_xxx.py scripts will evaluate the model with best validation accuracy at last.
----
+
+PS. The train_xxx.py scripts will evaluate the model with best validation accuracy at the end.
 
 ## .bib citation
 If this repo helps in your work, please cite the following paper:
