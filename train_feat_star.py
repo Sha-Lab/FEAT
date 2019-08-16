@@ -6,7 +6,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from feat.models.feat import FEAT 
+from feat.models.feat_star import FEAT 
 from feat.dataloader.samplers import CategoriesSampler
 from feat.utils import pprint, set_gpu, ensure_path, Averager, Timer, count_acc, euclidean_metric, compute_confidence_interval
 from tensorboardX import SummaryWriter
@@ -15,12 +15,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--max_epoch', type=int, default=200)
     parser.add_argument('--way', type=int, default=5)    
-    parser.add_argument('--shot', type=int, default=5)
+    parser.add_argument('--shot', type=int, default=1)
     parser.add_argument('--query', type=int, default=15)
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--lr_mul', type=float, default=10) # lr is the basic learning rate, while lr * lr_mul is the lr for other parts
-    parser.add_argument('--temperature', type=float, default=16)
-    parser.add_argument('--temperature2', type=float, default=1)
+    parser.add_argument('--temperature', type=float, default=1)
     parser.add_argument('--balance', type=float, default=10)
     parser.add_argument('--step_size', type=int, default=10)
     parser.add_argument('--gamma', type=float, default=0.5)    
@@ -30,15 +29,14 @@ if __name__ == '__main__':
     # MiniImageNet, ResNet, './saves/initialization/miniimagenet/res-pre.pth'
     # CUB, ConvNet, './saves/initialization/cub/con-pre.pth'    
     parser.add_argument('--init_weights', type=str, default=None)    
-    parser.add_argument('--head', type=int, default=1)
     parser.add_argument('--gpu', default='0')
     args = parser.parse_args()
     pprint(vars(args))
 
     set_gpu(args.gpu)
-    save_path1 = '-'.join([args.dataset, args.model_type, 'FEAT', str(args.shot), str(args.way)])
-    save_path2 = '_'.join([str(args.step_size), str(args.gamma), str(args.lr), 
-                           str(args.balance), str(args.temperature), str(args.temperature2), str(args.head)])
+    save_path1 = '-'.join([args.dataset, args.model_type, 'FEATSTAR'])
+    save_path2 = '_'.join([str(args.shot), str(args.query), str(args.way), 
+                           str(args.step_size), str(args.gamma), str(args.lr), str(args.balance), str(args.temperature)])
     args.save_path = osp.join(save_path1, save_path2)
     ensure_path(save_path1, remove=False)
     ensure_path(args.save_path)
@@ -49,7 +47,7 @@ if __name__ == '__main__':
     elif args.dataset == 'CUB':
         from feat.dataloader.cub import CUB as Dataset
     elif args.dataset == 'TieredImageNet':
-        from feat.dataloader.tiered_imagenet import tieredImageNet as Dataset        
+        from feat.dataloader.tiered_imagenet import tieredImageNet as Dataset       
     else:
         raise ValueError('Non-supported Dataset.')
     
@@ -58,7 +56,7 @@ if __name__ == '__main__':
     train_loader = DataLoader(dataset=trainset, batch_sampler=train_sampler, num_workers=8, pin_memory=True)
 
     valset = Dataset('val', args)
-    val_sampler = CategoriesSampler(valset.label, 600, args.way, args.shot + args.query)
+    val_sampler = CategoriesSampler(valset.label, 500, args.way, args.shot + args.query)
     val_loader = DataLoader(dataset=valset, batch_sampler=val_sampler, num_workers=8, pin_memory=True)
     
     model = FEAT(args, dropout = 0.5)    
@@ -103,12 +101,25 @@ if __name__ == '__main__':
     timer = Timer()
     global_count = 0
     writer = SummaryWriter(logdir=args.save_path) # should be changed to logdir in the latest version
+    
+    # construct attention label
+    att_label_basis = []
+    for i in range(args.way):
+        temp = torch.eye(args.way + 1)
+        temp[i, i] = 0.5
+        temp[-1, -1] = 0.5
+        temp[i, -1] = 0.5
+        temp[-1, i] = 0.5
+        att_label_basis.append(temp)
         
-    label = torch.arange(args.way, dtype=torch.int8).repeat(args.query).type(torch.LongTensor)
-    label_aux = torch.arange(args.way, dtype=torch.int8).repeat(args.shot + args.query).type(torch.LongTensor)
+    label = torch.arange(args.way, dtype=torch.int8).repeat(args.query)
+    att_label = torch.zeros(label.shape[0], args.way + 1, args.way + 1)
+    for i in range(att_label.shape[0]):
+        att_label[i,:] = att_label_basis[label[i].item()]
+    label = label.type(torch.LongTensor)
     if torch.cuda.is_available():
         label = label.cuda()
-        label_aux = label_aux.cuda()
+        att_label = att_label.cuda()
             
     for epoch in range(1, args.max_epoch + 1):
         lr_scheduler.step()
@@ -119,18 +130,20 @@ if __name__ == '__main__':
         for i, batch in enumerate(train_loader, 1):
             global_count = global_count + 1
             if torch.cuda.is_available():
-                data, index_label = batch[0].cuda(), batch[1].cuda()
+                data, _ = [_.cuda() for _ in batch]
             else:
-                data, index_label = batch[0], batch[1]
+                data = batch[0]
             p = args.shot * args.way
             data_shot, data_query = data[:p], data[p:]
-            logits, logits2 = model(data_shot, data_query, 'train')
+            logits, att = model(data_shot, data_query)
             loss = F.cross_entropy(logits, label)
             acc = count_acc(logits, label)
             writer.add_scalar('data/loss', float(loss), global_count)
             writer.add_scalar('data/acc', float(acc), global_count)
             
-            total_loss = loss + args.balance * F.cross_entropy(logits2, label_aux)
+            # attention loss, NK x (N+1) x (N + 1)
+            loss_att = F.kl_div(att.view(-1, args.way + 1), att_label.view(-1, args.way + 1))
+            total_loss = loss + args.balance * loss_att
             writer.add_scalar('data/total_loss', float(total_loss), global_count)
             print('epoch {}, train {}/{}, total loss={:.4f}, loss={:.4f} acc={:.4f}'
                   .format(epoch, i, len(train_loader), total_loss.item(), loss.item(), acc))
@@ -159,7 +172,7 @@ if __name__ == '__main__':
                     data = batch[0]
                 p = args.shot * args.way
                 data_shot, data_query = data[:p], data[p:]
-                logits = model(data_shot, data_query)
+                logits, _ = model(data_shot, data_query)
                 loss = F.cross_entropy(logits, label)
                 acc = count_acc(logits, label)       
                 vl.add(loss.item())
@@ -205,23 +218,20 @@ if __name__ == '__main__':
     else:
         label = label.type(torch.LongTensor)
         
-    with torch.no_grad():
-        for i, batch in enumerate(loader, 1):
-            if torch.cuda.is_available():
-                data, _ = [_.cuda() for _ in batch]
-            else:
-                data = batch[0]
-            k = args.way * args.shot
-            data_shot, data_query = data[:k], data[k:]
-            logits = model(data_shot, data_query)
-            acc = count_acc(logits, label)
-            ave_acc.add(acc)
-            test_acc_record[i-1] = acc
-            print('batch {}: {:.2f}({:.2f})'.format(i, ave_acc.item() * 100, acc * 100))
+    for i, batch in enumerate(loader, 1):
+        if torch.cuda.is_available():
+            data, _ = [_.cuda() for _ in batch]
+        else:
+            data = batch[0]
+        k = args.way * args.shot
+        data_shot, data_query = data[:k], data[k:]
+        logits, _ = model(data_shot, data_query)
+        acc = count_acc(logits, label)
+        ave_acc.add(acc)
+        test_acc_record[i-1] = acc
+        print('batch {}: {:.2f}({:.2f})'.format(i, ave_acc.item() * 100, acc * 100))
         
+    
     m, pm = compute_confidence_interval(test_acc_record)
     print('Val Best Epoch {}, Acc {:.4f}, Test Acc {:.4f}'.format(trlog['max_acc_epoch'], trlog['max_acc'], ave_acc.item()))
     print('Test Acc {:.4f} + {:.4f}'.format(m, pm))
-    
-    import pdb
-    pdb.set_trace()

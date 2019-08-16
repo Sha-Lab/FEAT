@@ -22,7 +22,7 @@ if __name__ == '__main__':
     parser.add_argument('--gamma', type=float, default=0.2)
     parser.add_argument('--temperature', type=float, default=1)
     parser.add_argument('--model_type', type=str, default='ConvNet', choices=['ConvNet', 'ResNet'])
-    parser.add_argument('--dataset', type=str, default='MiniImageNet', choices=['MiniImageNet', 'CUB'])
+    parser.add_argument('--dataset', type=str, default='MiniImageNet', choices=['MiniImageNet', 'CUB', 'TieredImageNet'])
     # MiniImageNet, ConvNet, './saves/initialization/miniimagenet/con-pre.pth'
     # MiniImageNet, ResNet, './saves/initialization/miniimagenet/res-pre.pth'
     # CUB, ConvNet, './saves/initialization/cub/con-pre.pth'
@@ -35,14 +35,17 @@ if __name__ == '__main__':
     save_path1 = '-'.join([args.dataset, args.model_type, 'ProtoNet'])
     save_path2 = '_'.join([str(args.shot), str(args.query), str(args.way), 
                                str(args.step_size), str(args.gamma), str(args.lr), str(args.temperature)])
-    args.save_path = save_path1 + '_' + save_path2
-    ensure_path(args.save_path)
+    args.save_path = osp.join(save_path1, save_path2)
+    ensure_path(save_path1, remove=False)
+    ensure_path(args.save_path)  
 
     if args.dataset == 'MiniImageNet':
         # Handle MiniImageNet
         from feat.dataloader.mini_imagenet import MiniImageNet as Dataset
     elif args.dataset == 'CUB':
         from feat.dataloader.cub import CUB as Dataset
+    elif args.dataset == 'TieredImageNet':
+        from feat.dataloader.tiered_imagenet import tieredImageNet as Dataset       
     else:
         raise ValueError('Non-supported Dataset.')
 
@@ -92,7 +95,7 @@ if __name__ == '__main__':
 
     timer = Timer()
     global_count = 0
-    writer = SummaryWriter(comment=args.save_path)
+    writer = SummaryWriter(logdir=args.save_path)
     
     for epoch in range(1, args.max_epoch + 1):
         lr_scheduler.step()
@@ -199,19 +202,20 @@ if __name__ == '__main__':
     else:
         label = label.type(torch.LongTensor)
         
-    for i, batch in enumerate(loader, 1):
-        if torch.cuda.is_available():
-            data, _ = [_.cuda() for _ in batch]
-        else:
-            data = batch[0]
-        k = args.way * args.shot
-        data_shot, data_query = data[:k], data[k:]
-
-        logits = model(data_shot, data_query)
-        acc = count_acc(logits, label)
-        ave_acc.add(acc)
-        test_acc_record[i-1] = acc
-        print('batch {}: {:.2f}({:.2f})'.format(i, ave_acc.item() * 100, acc * 100))
+    with torch.no_grad():
+        for i, batch in enumerate(loader, 1):
+            if torch.cuda.is_available():
+                data, _ = [_.cuda() for _ in batch]
+            else:
+                data = batch[0]
+            k = args.way * args.shot
+            data_shot, data_query = data[:k], data[k:]
+    
+            logits = model(data_shot, data_query)
+            acc = count_acc(logits, label)
+            ave_acc.add(acc)
+            test_acc_record[i-1] = acc
+            print('batch {}: {:.2f}({:.2f})'.format(i, ave_acc.item() * 100, acc * 100))
         
     m, pm = compute_confidence_interval(test_acc_record)
     print('Val Best Acc {:.4f}, Test Acc {:.4f}'.format(trlog['max_acc'], ave_acc.item()))

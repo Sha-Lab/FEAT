@@ -6,7 +6,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from feat.models.feat import FEAT 
+from feat.models.feat_star import FEAT 
 from feat.dataloader.samplers import CategoriesSampler
 from feat.utils import pprint, set_gpu, ensure_path, Averager, Timer, count_acc, euclidean_metric, compute_confidence_interval
 from tensorboardX import SummaryWriter

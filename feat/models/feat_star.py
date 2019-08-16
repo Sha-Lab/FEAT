@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from feat.utils import euclidean_metric
-from scipy.io import loadmat
 
 class ScaledDotProductAttention(nn.Module):
     ''' Scaled Dot-Product Attention '''
@@ -27,7 +25,7 @@ class ScaledDotProductAttention(nn.Module):
 class MultiHeadAttention(nn.Module):
     ''' Multi-Head Attention module '''
 
-    def __init__(self, args, n_head, d_model, d_k, d_v, dropout=0.1):
+    def __init__(self, n_head, d_model, d_k, d_v, dropout=0.1):
         super().__init__()
         self.n_head = n_head
         self.d_k = d_k
@@ -46,7 +44,7 @@ class MultiHeadAttention(nn.Module):
         self.fc = nn.Linear(n_head * d_v, d_model)
         nn.init.xavier_normal_(self.fc.weight)
         self.dropout = nn.Dropout(dropout)
-        
+
     def forward(self, q, k, v):
         d_k, d_v, n_head = self.d_k, self.d_v, self.n_head
         sz_b, len_q, _ = q.size()
@@ -70,7 +68,7 @@ class MultiHeadAttention(nn.Module):
         output = self.dropout(self.fc(output))
         output = self.layer_norm(output + residual)
 
-        return output
+        return output, attn, log_attn
 
 
 class FEAT(nn.Module):
@@ -88,11 +86,10 @@ class FEAT(nn.Module):
         else:
             raise ValueError('')
 
-        self.slf_attn = MultiHeadAttention(args, args.head, z_dim, z_dim, z_dim, dropout=dropout)    
-        self.z_dim = z_dim
+        self.slf_attn = MultiHeadAttention(1, z_dim, z_dim, z_dim, dropout=dropout)    
         self.args = args
 
-    def forward(self, support, query, mode = 'test'):
+    def forward(self, support, query):
         # feature extraction
         support = self.encoder(support)
         # get mean of the support
@@ -101,24 +98,16 @@ class FEAT(nn.Module):
         # for query set
         query = self.encoder(query)
         
-        # adapt the support set instances
-        proto = proto.unsqueeze(0)  # 1 x N x d        
+        # combine all query set with the proto
+        num_query = query.shape[0]
+        proto = proto.unsqueeze(0).repeat([num_query, 1, 1])  # NK x N x d
+        query = query.unsqueeze(1) # NK x 1 x d
+        combined = torch.cat([proto, query], 1) # Nk x (N + 1) x d, batch_size = NK
+        
         # refine by Transformer
-        proto = self.slf_attn(proto, proto, proto)
-        proto = proto.squeeze(0)
+        combined, enc_slf_attn, enc_slf_log_attn = self.slf_attn(combined, combined, combined)
         
         # compute distance for all batches
-        logitis = euclidean_metric(query, proto) / self.args.temperature
-        
-        # transform for all instances in the task
-        if mode == 'train':
-            aux_task = torch.cat([support.reshape(self.args.shot, -1, support.shape[-1]), 
-                                  query.reshape(self.args.query, -1, support.shape[-1])], 0) # (K+Kq) x N x d
-            aux_task = aux_task.permute([1,0,2])
-            aux_emb = self.slf_attn(aux_task, aux_task, aux_task) # N x (K+Kq) x d
-            # compute class mean
-            aux_center = torch.mean(aux_emb, 1) # N x d
-            logitis2 = euclidean_metric(aux_task.permute([1,0,2]).view(-1, self.z_dim), aux_center) / self.args.temperature2
-            return logitis, logitis2
-        else:
-            return logitis
+        refined_support, refined_query = combined.split(self.args.way, 1)
+        logitis = -torch.sum((refined_support - refined_query) ** 2, 2) / self.args.temperature
+        return logitis, enc_slf_log_attn

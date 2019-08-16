@@ -7,6 +7,8 @@ Few-shot learning methods address this challenge by learning an instance embeddi
 
 ![Few-Shot Learning via Transformer](imgs/teaser.PNG)
 
+![Few-Shot Learning via Transformer](imgs/architecture.PNG)
+
 ### Prerequisites
 
 The following packages are required to run the scripts:
@@ -41,7 +43,7 @@ We presume the input model is a GPU stored model.
 ### Model Training
 
 #### FEAT Approach
-To reproduce our experiments with FEAT, please use **train_feat.py** and follow the instructions blow. FEAT meta-learns the embedding adaptation process such that all the instance embeddings in a task is adapted, based on their contextual task information, using Transformer. 
+To reproduce our experiments with FEAT, please use **train_feat.py** and follow the instructions blow. FEAT meta-learns the embedding adaptation process such that all the training instance embeddings in a task is adapted, based on their contextual task information, using Transformer. An extension FEAT$\star$, is also included, which incorporate the specific test instance in the context.
 
 The train_feat.py takes the following command line options:
 
