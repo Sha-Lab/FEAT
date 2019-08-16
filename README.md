@@ -7,7 +7,7 @@ Few-shot learning methods address this challenge by learning an instance embeddi
 
 ![Few-Shot Learning via Transformer](imgs/teaser.PNG)
 
-![Few-Shot Learning via Transformer](imgs/architecture.PNG)
+![architecture compare](imgs/architecture.png)
 
 ### Prerequisites
 
@@ -43,7 +43,7 @@ We presume the input model is a GPU stored model.
 ### Model Training
 
 #### FEAT Approach
-To reproduce our experiments with FEAT, please use **train_feat.py** and follow the instructions blow. FEAT meta-learns the embedding adaptation process such that all the training instance embeddings in a task is adapted, based on their contextual task information, using Transformer. An extension FEAT$\star$, is also included, which incorporate the specific test instance in the context.
+To reproduce our experiments with FEAT, please use **train_feat.py** and follow the instructions blow. FEAT meta-learns the embedding adaptation process such that all the training instance embeddings in a task is adapted, based on their contextual task information, using Transformer. An extension FEAT* (**train_feat_star.py**), is also included, which incorporates the specific test instance in the context.
 
 The train_feat.py takes the following command line options:
 
@@ -63,6 +63,8 @@ The train_feat.py takes the following command line options:
 
 - `temperature`: Temperature over the logits, we divide logits with this value, default to `1`
 
+- `temperature2`: Temperature over the logits in the regularizer, we divide logits with this value, default to `16`. This is specially designed for FEAT (and in the train_feat.py).
+
 - `model_type`: Two types of encoder, i.e., the convolution network and ResNet, default to `ConvNet`
 
 - `dataset`: Option for the dataset (MiniImageNet or CUB), default to `MiniImageNet`
@@ -73,19 +75,23 @@ The train_feat.py takes the following command line options:
 
 - `use_bilstm`: This is specially designed for Matching Network. If this is true, bi-LSTM is used for embedding adaptation. Default to `False`
 
-- `lr_mul`: This is specially designed for Matching Network with bi-LSTM and FEAT. The learning rate for the top layer will be multiplied by this value (usually with faster learning rate). Default to `10`
+- `lr_mul`: This is specially designed for Matching Network with bi-LSTM and FEAT variants. The learning rate for the top layer will be multiplied by this value (usually with faster learning rate). Default to `10`
 
-- `balance`: This is the weights for the FEAT regularizer. Default to `10`
+- `balance`: This is the weights for the FEAT variants regularizer. Default to `0.1` and `10` for FEAT and FEAT* respectively.
 
 Running the command without arguments will train the models with the default hyperparamters values. Loss changes will be recorded as a tensorboard file in the ./runs folder.
 
 For example, to train the 1-shot 5-way FEAT model with ConvNet backbone on MiniImageNet:
 
-    $ python train_feat.py --lr 0.0001 --temperature 32 --max_epoch 200 --model_type ConvNet --dataset MiniImageNet --init_weights ./saves/initialization/miniimagenet/con-pre.pth --shot 1 --way 5 --gpu 0 --balance 10 --step_size 50 --gamma 0.1 --lr_mul 10
+    $ python train_feat.py --lr 0.0001 --temperature 64 --temperature2 16 --max_epoch 200 --model_type ConvNet --dataset MiniImageNet --init_weights ./saves/initialization/miniimagenet/con-pre.pth --shot 1 --way 5 --gpu 0 --balance 0.1 --step_size 20 --gamma 0.5 --lr_mul 10
+
+    $ python train_feat_star.py --lr 0.0001 --temperature 32 --max_epoch 200 --model_type ConvNet --dataset MiniImageNet --init_weights ./saves/initialization/miniimagenet/con-pre.pth --shot 1 --way 5 --gpu 0 --balance 10 --step_size 50 --gamma 0.1 --lr_mul 10
 
 to train the 1-shot 5-way FEAT model with ResNet backbone on MiniImageNet:
 
-    $ python train_feat.py --lr 0.0001 --temperature 128 --max_epoch 100 --model_type ResNet --dataset MiniImageNet --init_weights ./saves/initialization/miniimagenet/res-pre.pth --shot 1 --way 5 --gpu 0 --balance 10 --step_size 10 --gamma 0.5 --lr_mul 10
+    $ python train_feat.py --lr 0.0001 --temperature 128 --temperature2 16 --max_epoch 100 --model_type ResNet --dataset MiniImageNet --init_weights ./saves/initialization/miniimagenet/res-pre.pth --shot 1 --way 5 --gpu 0 --balance 0.1 --step_size 10 --gamma 0.5 --lr_mul 10
+
+    $ python train_feat_star.py --lr 0.0001 --temperature 128 --max_epoch 100 --model_type ResNet --dataset MiniImageNet --init_weights ./saves/initialization/miniimagenet/res-pre.pth --shot 1 --way 5 --gpu 0 --balance 10 --step_size 10 --gamma 0.5 --lr_mul 10
 
 #### Baseline Methods
 We implement two baseline approaches in this repo, i.e., the [Matching Network](https://arxiv.org/abs/1606.04080) and [Prototypical Network](https://arxiv.org/abs/1703.05175). To train the them on this task, cd into this repo's root folder and execute:
