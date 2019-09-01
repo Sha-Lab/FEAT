@@ -23,6 +23,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', default='0')
     args = parser.parse_args()
     args.temperature = 1
+    args.head = 1
     pprint(vars(args))
 
     set_gpu(args.gpu)
@@ -63,7 +64,7 @@ if __name__ == '__main__':
                 data = batch[0]
             k = args.way * args.shot
             data_shot, data_query = data[:k], data[k:]
-            logits, _ = model(data_shot, data_query)
+            logits = model(data_shot, data_query)
             acc = count_acc(logits, label)
             ave_acc.add(acc)
             test_acc_record[i-1] = acc
