@@ -1,7 +1,7 @@
 # Few-Shot Learning via Embedding Adaptation with Set-to-Set Functions
-The code repository for "[Few-Shot Learning via Embedding Adaptation with Set-to-Set Functions](https://arxiv.org/abs/1812.03664)" in PyTorch
+The code repository for "[Few-Shot Learning via Embedding Adaptation with Set-to-Set Functions](https://arxiv.org/abs/1812.03664)" (Accepted by CVPR 2020) in PyTorch.
 
-## Few-Shot Learning via Transformer
+## Few-Shot Embedding Adaptation with Transformer
 
 Few-shot learning methods address this challenge by learning an instance embedding function from seen classes, and apply the function to instances from unseen classes with limited labels. This style of transfer learning is task-agnostic: the embedding function is not learned optimally discriminative with respect to the unseen classes, where discerning among them is the target task. In this work, we propose a novel approach to adapt the embedding model to the target classification task, yielding embeddings that are task-specific and are discriminative. To this end, we employ a type of self-attention mechanism called Transformer to transform the embeddings from task-agnostic to task-specific by focusing on relating instances from the test instances to the training instances in both seen and unseen classes.
 
