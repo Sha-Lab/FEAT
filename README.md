@@ -1,5 +1,5 @@
-# Learning Embedding Adaptation for Few-Shot Learning
-The code repository for "[Learning Embedding Adaptation for Few-Shot Learning](https://arxiv.org/abs/1812.03664)" in PyTorch
+# Few-Shot Learning via Embedding Adaptation with Set-to-Set Functions
+The code repository for "[Few-Shot Learning via Embedding Adaptation with Set-to-Set Functions](https://arxiv.org/abs/1812.03664)" in PyTorch
 
 ## Few-Shot Learning via Transformer
 
@@ -104,15 +104,14 @@ PS. The train_xxx.py scripts will evaluate the model with best validation accura
 ## .bib citation
 If this repo helps in your work, please cite the following paper:
 
-    @article{DBLP:YeHZS2018Learning,
+    @inproceedings{ye2020fewshot,
       author    = {Han-Jia Ye and
                    Hexiang Hu and
                    De-Chuan Zhan and
                    Fei Sha},
-      title     = {Learning Embedding Adaptation for Few-Shot Learning},
-      journal   = {CoRR},
-      volume    = {abs/1812.03664},
-      year      = {2018}
+      title     = {Few-Shot Learning via Embedding Adaptation with Set-to-Set Functions},
+      booktitle = {Computer Vision and Pattern Recognition (CVPR)},
+      year      = {2020}
     }
 
 
