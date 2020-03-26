@@ -16,7 +16,7 @@ The code repository for "[Few-Shot Learning via Embedding Adaptation with Set-to
 
 We propose a novel model-based approach to adapt the instance embeddings to the target classification task with a #set-to-set# function, yielding embeddings that are task-specific and are discriminative. We empirically investigated various instantiations of such set-to-set functions and observed the Transformer is most effective --- as it naturally satisfies key properties of our desired model. We denote our method as Few-shot Embedding Adaptation with Transformer (FEAT).
 
-![architecture compare](imgs/architecture.png)
+<img src='imgs/architecture.png' width='640' height='280'>
 
 ## Results
 
