@@ -19,7 +19,9 @@ We propose a novel model-based approach to adapt the instance embeddings to the 
 
 ## Results
 
-Results on the **MiniImageNet** with ResNet-12 backbone (Same as [this repo](https://github.com/kjunelee/MetaOptNet)):
+Experimental results on few-shot learning datasets with ResNet-12 backbone (Same as [this repo](https://github.com/kjunelee/MetaOptNet)). We report average results with 10,000 randomly sampled few-shot learning episodes for stablized evaluation.
+
+**MiniImageNet Dataset**
 |  Setups  | 1-Shot 5-Way | 5-Shot 5-Way |   Link to Weights |
 |:--------:|:------------:|:------------:|:-----------------:|
 | ProtoNet |     62.39    |     80.53    | [Coming Soon]() |
@@ -28,7 +30,8 @@ Results on the **MiniImageNet** with ResNet-12 backbone (Same as [this repo](htt
 |    GCN   |     64.50    |     81.65    | [Coming Soon]() |
 |   FEAT   |   **66.78**  |   **82.05**  | [Coming Soon]() |
 
-Results on the **TieredImageNet** with ResNet-12 backbone:
+**TieredImageNet Dataset**
+
 |  Setups  | 1-Shot 5-Way | 5-Shot 5-Way |   Link to Weights |
 |:--------:|:------------:|:------------:|:-----------------:|
 | ProtoNet |     68.23    |     84.03    | [Coming Soon]() |
