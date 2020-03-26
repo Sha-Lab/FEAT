@@ -13,13 +13,13 @@ Learning with limited data is a key challenge for visual recognition. Many few-s
 
 The following packages are required to run the scripts:
 
-- [PyTorch-0.4 and torchvision](https://pytorch.org)
+- [PyTorch-1.4 and torchvision](https://pytorch.org)
 
 - Package [tensorboardX](https://github.com/lanpa/tensorboardX)
 
 - Dataset: please download the dataset and put images into the folder data/[name of the dataset, miniimagenet or cub]/images
 
-- Pre-trained weights: please download the [pre-trained weights](https://drive.google.com/open?id=14Jn1t9JxH-CxjfWy4JmVpCxkC9cDqqfE) of the encoder if needed. The pre-trained weights can be downloaded by the script [download_weight.sh](download_weight.sh)
+- Pre-trained weights: please download the [pre-trained weights](https://drive.google.com/open?id=14Jn1t9JxH-CxjfWy4JmVpCxkC9cDqqfE) of the encoder if needed. The pre-trained weights can be downloaded in a [zip file](https://drive.google.com/file/d/1XcUZMNTQ-79_2AkNG3E04zh6bDYnPAMY/view?usp=sharing).
 
 ### Dataset
 
