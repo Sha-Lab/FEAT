@@ -1,7 +1,11 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
+import torch.nn.functional as F
+
+from model.models import FewShotModel
+
+# No-Reg for FEAT-STAR here
 
 class ScaledDotProductAttention(nn.Module):
     ''' Scaled Dot-Product Attention '''
@@ -31,9 +35,9 @@ class MultiHeadAttention(nn.Module):
         self.d_k = d_k
         self.d_v = d_v
 
-        self.w_qs = nn.Linear(d_model, n_head * d_k)
-        self.w_ks = nn.Linear(d_model, n_head * d_k)
-        self.w_vs = nn.Linear(d_model, n_head * d_v)
+        self.w_qs = nn.Linear(d_model, n_head * d_k, bias=False)
+        self.w_ks = nn.Linear(d_model, n_head * d_k, bias=False)
+        self.w_vs = nn.Linear(d_model, n_head * d_v, bias=False)
         nn.init.normal_(self.w_qs.weight, mean=0, std=np.sqrt(2.0 / (d_model + d_k)))
         nn.init.normal_(self.w_ks.weight, mean=0, std=np.sqrt(2.0 / (d_model + d_k)))
         nn.init.normal_(self.w_vs.weight, mean=0, std=np.sqrt(2.0 / (d_model + d_v)))
@@ -44,7 +48,7 @@ class MultiHeadAttention(nn.Module):
         self.fc = nn.Linear(n_head * d_v, d_model)
         nn.init.xavier_normal_(self.fc.weight)
         self.dropout = nn.Dropout(dropout)
-
+        
     def forward(self, q, k, v):
         d_k, d_v, n_head = self.d_k, self.d_v, self.n_head
         sz_b, len_q, _ = q.size()
@@ -68,46 +72,58 @@ class MultiHeadAttention(nn.Module):
         output = self.dropout(self.fc(output))
         output = self.layer_norm(output + residual)
 
-        return output, attn, log_attn
-
-
-class FEAT(nn.Module):
-
-    def __init__(self, args, dropout=0.2):
-        super().__init__()
-        if args.model_type == 'ConvNet':
-            from feat.networks.convnet import ConvNet
-            self.encoder = ConvNet()
-            z_dim = 64
-        elif args.model_type == 'ResNet':
-            from feat.networks.resnet import ResNet
-            self.encoder = ResNet()
-            z_dim = 640
+        return output
+    
+class FEATSTAR(FewShotModel):
+    def __init__(self, args):
+        super().__init__(args)
+        if args.backbone_class == 'ConvNet':
+            hdim = 64
+        elif args.backbone_class == 'Res12':
+            hdim = 640
+        elif args.backbone_class == 'Res18':
+            hdim = 512
+        elif args.backbone_class == 'WRN':
+            hdim = 640
         else:
             raise ValueError('')
+        
+        self.slf_attn = MultiHeadAttention(1, hdim, hdim, hdim, dropout=0.5)          
+        
+    def _forward(self, instance_embs, support_idx, query_idx):
+        emb_dim = instance_embs.size(-1)
 
-        self.slf_attn = MultiHeadAttention(1, z_dim, z_dim, z_dim, dropout=dropout)    
-        self.args = args
-
-    def forward(self, support, query):
-        # feature extraction
-        support = self.encoder(support)
+        # organize support/query data
+        support = instance_embs[support_idx.contiguous().view(-1)].contiguous().view(*(support_idx.shape + (-1,)))
+        query   = instance_embs[query_idx.contiguous().view(-1)].contiguous().view(  *(query_idx.shape   + (-1,)))
+    
         # get mean of the support
-        proto = support.reshape(self.args.shot, -1, support.shape[-1]).mean(dim=0) # N x d
-        num_proto = proto.shape[0]
-        # for query set
-        query = self.encoder(query)
-        
-        # combine all query set with the proto
-        num_query = query.shape[0]
-        proto = proto.unsqueeze(0).repeat([num_query, 1, 1])  # NK x N x d
-        query = query.unsqueeze(1) # NK x 1 x d
-        combined = torch.cat([proto, query], 1) # Nk x (N + 1) x d, batch_size = NK
-        
+        proto = support.mean(dim=1) # Ntask x NK x d
+        num_batch = proto.shape[0]
+        num_proto = proto.shape[1]
+        num_query = np.prod(query_idx.shape[-2:])
+    
+        # query: (num_batch, num_query, num_proto, num_emb)
+        # proto: (num_batch, num_proto, num_emb)
+        query = query.view(-1, emb_dim).unsqueeze(1)
+
+        proto = proto.unsqueeze(1).expand(num_batch, num_query, num_proto, emb_dim).contiguous()
+        proto = proto.view(num_batch*num_query, num_proto, emb_dim)
+
         # refine by Transformer
-        combined, enc_slf_attn, enc_slf_log_attn = self.slf_attn(combined, combined, combined)
-        
+        combined = torch.cat([proto, query], 1) # Nk x (N + 1) x d, batch_size = NK
+        combined = self.slf_attn(combined, combined, combined)
         # compute distance for all batches
-        refined_support, refined_query = combined.split(self.args.way, 1)
-        logitis = -torch.sum((refined_support - refined_query) ** 2, 2) / self.args.temperature
-        return logitis, enc_slf_log_attn
+        proto, query = combined.split(num_proto, 1)
+        
+        if self.args.use_euclidean:
+            query = query.view(-1, emb_dim).unsqueeze(1) # (Nbatch*Nq*Nw, 1, d)
+
+            logits = - torch.sum((proto - query) ** 2, 2) / self.args.temperature
+        else: # cosine similarity: more memory efficient
+            proto = F.normalize(proto, dim=-1) # normalize for cosine distance
+            
+            logits = torch.bmm(query, proto.permute([0,2,1])) / self.args.temperature
+            logits = logits.view(-1, num_proto)
+        
+        return logits, None

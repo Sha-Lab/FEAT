@@ -1,60 +1,64 @@
 import argparse
+import os
 import os.path as osp
 import shutil
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from feat.models.classifier import Classifier
-from feat.dataloader.samplers import CategoriesSampler
-from feat.utils import pprint, set_gpu, ensure_path, Averager, Timer, count_acc, euclidean_metric
+from model.models.classifier import Classifier
+from model.dataloader.samplers import CategoriesSampler
+from model.utils import pprint, set_gpu, ensure_path, Averager, Timer, count_acc, euclidean_metric
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
-# pre-train backbone
+# pre-train model, compute validation acc after 500 epoches
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--batch_size', type=int, default=128)
-    parser.add_argument('--max_epoch', type=int, default=200)
+    parser.add_argument('--batch_size', type=int, default=16)
+    parser.add_argument('--max_epoch', type=int, default=500)
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--ngpu', type=int, default=1, help='0 = CPU.')
-    parser.add_argument('--dataset', type=str, default='MiniImageNet', choices=['MiniImageNet', 'TieredImagenet'])    
-    parser.add_argument('--model_type', type=str, default='ResNet', choices=['ConvNet', 'ResNet'])
-    parser.add_argument('--schedule', type=int, nargs='+', default=[30, 50, 80], help='Decrease learning rate at these epochs.')
+    parser.add_argument('--dataset', type=str, default='MiniImageNet', choices=['MiniImageNet', 'TieredImagenet', 'CUB'])    
+    parser.add_argument('--backbone_class', type=str, default='Res12', choices=['ConvNet', 'Res12'])
+    parser.add_argument('--schedule', type=int, nargs='+', default=[75, 150, 300], help='Decrease learning rate at these epochs.')
     parser.add_argument('--gamma', type=float, default=0.1)
+    parser.add_argument('--query', type=int, default=15)    
     parser.add_argument('--resume', type=bool, default=False)
     args = parser.parse_args()
+    args.orig_imsize = -1
     pprint(vars(args))
     
-    save_path1 = '-'.join([args.dataset, args.model_type, 'Pre'])
-    save_path2 = '_'.join([str(args.lr), str(args.gamma)])
+    save_path1 = '-'.join([args.dataset, args.backbone_class, 'Pre'])
+    save_path2 = '_'.join([str(args.lr), str(args.gamma), str(args.schedule)])
     args.save_path = osp.join(save_path1, save_path2)
-    ensure_path(save_path1, remove=False)
+    if not osp.exists(save_path1):
+        os.mkdir(save_path1)
     ensure_path(args.save_path)
 
     if args.dataset == 'MiniImageNet':
         # Handle MiniImageNet
-        from feat.dataloader.mini_imagenet_pre import MiniImageNet as Dataset
+        from model.dataloader.mini_imagenet import MiniImageNet as Dataset
     elif args.dataset == 'CUB':
-        from feat.dataloader.cub import CUB as Dataset
+        from model.dataloader.cub import CUB as Dataset
     elif args.dataset == 'TieredImagenet':
-        from feat.dataloader.tiered_imagenet import tieredImageNet as Dataset    
+        from model.dataloader.tiered_imagenet import tieredImageNet as Dataset    
     else:
         raise ValueError('Non-supported Dataset.')
 
-    trainset = Dataset('train', args)
+    trainset = Dataset('train', args, augment=True)
     train_loader = DataLoader(dataset=trainset, batch_size=args.batch_size, shuffle=True, num_workers=8, pin_memory=True)
     args.num_class = trainset.num_class
     valset = Dataset('val', args)
-    val_sampler = CategoriesSampler(valset.label, 200, valset.num_class, 1 + 15) # test on 16-way 1-shot
+    val_sampler = CategoriesSampler(valset.label, 200, valset.num_class, 1 + args.query) # test on 16-way 1-shot
     val_loader = DataLoader(dataset=valset, batch_sampler=val_sampler, num_workers=8, pin_memory=True)
     args.way = valset.num_class
     args.shot = 1
     
     # construct model
     model = Classifier(args)
-    if args.model_type == 'ConvNet':
+    if 'Conv' in  args.backbone_class:
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=0.0005)
-    elif args.model_type == 'ResNet':
+    elif 'Res' in args.backbone_class:
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, nesterov=True, weight_decay=0.0005)
     else:
         raise ValueError('No Such Encoder')    
@@ -63,7 +67,7 @@ if __name__ == '__main__':
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
         if args.ngpu  > 1:
-            model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
+            model.encoder = torch.nn.DataParallel(model.encoder, device_ids=list(range(args.ngpu)))
         
         model = model.cuda()
         criterion = criterion.cuda()
@@ -76,7 +80,8 @@ if __name__ == '__main__':
                  'args': args,
                  'state_dict': model.state_dict(),
                  'trlog': trlog,
-                 'val_acc': trlog['max_acc'],
+                 'val_acc_dist': trlog['max_acc_dist'],
+                 'val_acc_sim': trlog['max_acc_sim'],
                  'optimizer' : optimizer.state_dict(),
                  'global_count': global_count}
         
@@ -100,16 +105,20 @@ if __name__ == '__main__':
         trlog = {}
         trlog['args'] = vars(args)
         trlog['train_loss'] = []
-        trlog['val_loss'] = []
+        trlog['val_loss_dist'] = []
+        trlog['val_loss_sim'] = []
         trlog['train_acc'] = []
-        trlog['val_acc'] = []
-        trlog['max_acc'] = 0.0
-        trlog['max_acc_epoch'] = 0
+        trlog['val_acc_sim'] = []
+        trlog['val_acc_dist'] = []
+        trlog['max_acc_dist'] = 0.0
+        trlog['max_acc_dist_epoch'] = 0
+        trlog['max_acc_sim'] = 0.0
+        trlog['max_acc_sim_epoch'] = 0        
         initial_lr = args.lr
         global_count = 0
 
     timer = Timer()
-    writer = SummaryWriter(logdir=args.save_path) # should change to log_dir for previous version tensorboardX
+    writer = SummaryWriter(logdir=args.save_path)
     for epoch in range(init_epoch, args.max_epoch + 1):
         # refine the step-size
         if epoch in args.schedule:
@@ -134,7 +143,8 @@ if __name__ == '__main__':
             acc = count_acc(logits, label)
             writer.add_scalar('data/loss', float(loss), global_count)
             writer.add_scalar('data/acc', float(acc), global_count)
-            print('epoch {}, train {}/{}, loss={:.4f} acc={:.4f}'.format(epoch, i, len(train_loader), loss.item(), acc))
+            if (i-1) % 100 == 0:
+                print('epoch {}, train {}/{}, loss={:.4f} acc={:.4f}'.format(epoch, i, len(train_loader), loss.item(), acc))
 
             tl.add(loss.item())
             ta.add(acc)
@@ -147,13 +157,16 @@ if __name__ == '__main__':
         ta = ta.item()
 
         # do not do validation in first 500 epoches
-        if epoch > 30 or epoch % 5 == 0:
+        if epoch > 100 or (epoch-1) % 5 == 0:
             model.eval()
-            vl = Averager()
-            va = Averager()
-            print('best epoch {}, current best val acc={:.4f}'.format(trlog['max_acc_epoch'], trlog['max_acc']))
+            vl_dist = Averager()
+            va_dist = Averager()
+            vl_sim = Averager()
+            va_sim = Averager()            
+            print('[Dist] best epoch {}, current best val acc={:.4f}'.format(trlog['max_acc_dist_epoch'], trlog['max_acc_dist']))
+            print('[Sim] best epoch {}, current best val acc={:.4f}'.format(trlog['max_acc_sim_epoch'], trlog['max_acc_sim']))
             # test performance with Few-Shot
-            label = torch.arange(valset.num_class).repeat(15)
+            label = torch.arange(valset.num_class).repeat(args.query)
             if torch.cuda.is_available():
                 label = label.type(torch.cuda.LongTensor)
             else:
@@ -165,31 +178,44 @@ if __name__ == '__main__':
                     else:
                         data, _ = batch
                     data_shot, data_query = data[:valset.num_class], data[valset.num_class:] # 16-way test
-                    if args.ngpu > 1:
-                        logits = model.module.forward_proto(data_shot, data_query, valset.num_class)
-                    else:
-                        logits = model.forward_proto(data_shot, data_query, valset.num_class)
-                    loss = F.cross_entropy(logits, label)
-                    acc = count_acc(logits, label)
-                    vl.add(loss.item())
-                    va.add(acc)
+                    logits_dist, logits_sim = model.forward_proto(data_shot, data_query, valset.num_class)
+                    loss_dist = F.cross_entropy(logits_dist, label)
+                    acc_dist = count_acc(logits_dist, label)
+                    loss_sim = F.cross_entropy(logits_sim, label)
+                    acc_sim = count_acc(logits_sim, label)                    
+                    vl_dist.add(loss_dist.item())
+                    va_dist.add(acc_dist)
+                    vl_sim.add(loss_sim.item())
+                    va_sim.add(acc_sim)                    
 
-            vl = vl.item()
-            va = va.item()
-            writer.add_scalar('data/val_loss', float(vl), epoch)
-            writer.add_scalar('data/val_acc', float(va), epoch)        
-            print('epoch {}, val, loss={:.4f} acc={:.4f}'.format(epoch, vl, va))
+            vl_dist = vl_dist.item()
+            va_dist = va_dist.item()
+            vl_sim = vl_sim.item()
+            va_sim = va_sim.item()            
+            writer.add_scalar('data/val_loss_dist', float(vl_dist), epoch)
+            writer.add_scalar('data/val_acc_dist', float(va_dist), epoch)     
+            writer.add_scalar('data/val_loss_sim', float(vl_sim), epoch)
+            writer.add_scalar('data/val_acc_sim', float(va_sim), epoch)               
+            print('epoch {}, val, loss_dist={:.4f} acc_dist={:.4f} loss_sim={:.4f} acc_sim={:.4f}'.format(epoch, vl_dist, va_dist, vl_sim, va_sim))
     
-            if va > trlog['max_acc']:
-                trlog['max_acc'] = va
-                trlog['max_acc_epoch'] = epoch
-                save_model('max_acc')
+            if va_dist > trlog['max_acc_dist']:
+                trlog['max_acc_dist'] = va_dist
+                trlog['max_acc_dist_epoch'] = epoch
+                save_model('max_acc_dist')
                 save_checkpoint(True)
+                
+            if va_sim > trlog['max_acc_sim']:
+                trlog['max_acc_sim'] = va_sim
+                trlog['max_acc_sim_epoch'] = epoch
+                save_model('max_acc_sim')
+                save_checkpoint(True)            
     
             trlog['train_loss'].append(tl)
             trlog['train_acc'].append(ta)
-            trlog['val_loss'].append(vl)
-            trlog['val_acc'].append(va)
+            trlog['val_loss_dist'].append(vl_dist)
+            trlog['val_acc_dist'].append(va_dist)
+            trlog['val_loss_sim'].append(vl_sim)
+            trlog['val_acc_sim'].append(va_sim)            
             save_model('epoch-last')
     
             print('ETA:{}/{}'.format(timer.measure(), timer.measure(epoch / args.max_epoch)))

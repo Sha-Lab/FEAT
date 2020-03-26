@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from feat.utils import euclidean_metric
+from model.utils import euclidean_metric
 import torch.nn.functional as F
     
 class Classifier(nn.Module):
@@ -9,14 +9,22 @@ class Classifier(nn.Module):
     def __init__(self, args):
         super().__init__()
         self.args = args
-        if args.model_type == 'ConvNet':
+        if args.backbone_class == 'ConvNet':
+            from model.networks.convnet import ConvNet
             hdim = 64
-            from feat.networks.convnet import ConvNet
             self.encoder = ConvNet()
-        elif args.model_type == 'ResNet':
+        elif args.backbone_class == 'Res12':
             hdim = 640
-            from feat.networks.resnet import ResNet as ResNet
+            from model.networks.res12 import ResNet
             self.encoder = ResNet()
+        elif args.backbone_class == 'Res18':
+            hdim = 512
+            from model.networks.res18 import ResNet
+            self.encoder = ResNet()
+        elif args.backbone_class == 'WRN':
+            hdim = 640
+            from model.networks.WRN28 import Wide_ResNet
+            self.encoder = Wide_ResNet(28, 10, 0.5)                        
         else:
             raise ValueError('')
 
@@ -33,7 +41,8 @@ class Classifier(nn.Module):
             way = self.args.num_class
         proto = self.encoder(data_shot)
         proto = proto.reshape(self.args.shot, way, -1).mean(dim=0)
-        
         query = self.encoder(data_query)
-        logits = euclidean_metric(query, proto)
-        return logits
+        
+        logits_dist = euclidean_metric(query, proto)
+        logits_sim = torch.mm(query, F.normalize(proto, p=2, dim=-1).t())
+        return logits_dist, logits_sim
