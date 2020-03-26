@@ -1,4 +1,5 @@
 # Few-Shot Learning via Embedding Adaptation with Set-to-Set Functions
+
 The code repository for "[Few-Shot Learning via Embedding Adaptation with Set-to-Set Functions](https://arxiv.org/abs/1812.03664)" (Accepted by CVPR 2020) in PyTorch. If you use any content of this repo for your work, please cite the following bib entry:
 
     @inproceedings{ye2020fewshot,
@@ -11,7 +12,7 @@ The code repository for "[Few-Shot Learning via Embedding Adaptation with Set-to
       year      = {2020}
     }
 
-## Few-Shot Embedding Adaptation with Set-to-Set Functions
+## Embedding Adaptation with Set-to-Set Functions
 
 We propose a novel model-based approach to adapt the instance embeddings to the target classification task with a #set-to-set# function, yielding embeddings that are task-specific and are discriminative. We empirically investigated various instantiations of such set-to-set functions and observed the Transformer is most effective --- as it naturally satisfies key properties of our desired model. We denote our method as Few-shot Embedding Adaptation with Transformer (FEAT).
 
