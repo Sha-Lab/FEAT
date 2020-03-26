@@ -41,7 +41,7 @@ Experimental results on few-shot learning datasets with ResNet-12 backbone (Same
 |    GCN   |     68.20    |     84.64    | [Coming Soon]() |
 |   FEAT   |   **70.80**  |   **84.79**  | [Coming Soon]() |
 
-### Prerequisites
+## Prerequisites
 
 The following packages are required to run the scripts:
 
@@ -53,32 +53,32 @@ The following packages are required to run the scripts:
 
 - Pre-trained weights: please download the [pre-trained weights](https://drive.google.com/open?id=14Jn1t9JxH-CxjfWy4JmVpCxkC9cDqqfE) of the encoder if needed. The pre-trained weights can be downloaded in a [zip file](https://drive.google.com/file/d/1XcUZMNTQ-79_2AkNG3E04zh6bDYnPAMY/view?usp=sharing).
 
-### Dataset
+## Dataset
 
-#### MiniImageNet Dataset
+### MiniImageNet Dataset
 
 The MiniImageNet dataset is a subset of the ImageNet that includes a total number of 100 classes and 600 examples per class. We follow the [previous setup](https://github.com/twitter/meta-learning-lstm), and use 64 classes as SEEN categories, 16 and 20 as two sets of UNSEEN categories for model validation and evaluation, respectively.
 
-#### CUB Dataset
+### CUB Dataset
 [Caltech-UCSD Birds (CUB) 200-2011 dataset](http://www.vision.caltech.edu/visipedia/CUB-200-2011.html) is initially designed for fine-grained classification. It contains in total 11,788 images of birds over 200 species. On CUB, we randomly sampled 100 species as SEEN classes, and another two 50 species are used as two UNSEEN sets. We crop all images with given bounding boxes before training. We only test CUB with the ConvNet backbone in our work.
 
-#### TieredImageNet Dataset
+### TieredImageNet Dataset
 [TieredImageNet](https://github.com/renmengye/few-shot-ssl-public) is a large-scale dataset  with more categories, which contains 351, 97, and 160 categoriesfor model training, validation, and evaluation, respectively. The dataset can also be download from [here](https://github.com/kjunelee/MetaOptNet).
 We only test TieredImageNet with ResNet backbone in our work.
 
 Check [this](https://github.com/Sha-Lab/FEAT/blob/master/data/README.md) for details of data downloading and preprocessing.
 
-### Code Structures
+## Code Structures
 To reproduce our experiments with FEAT, please use **train_fsl.py**. There are four parts in the code.
  - `model`: It contains the main files of the code, including the few-shot learning trainer, the dataloader, the network architectures, and baseline and comparison models.
  - `data`: Images and splits for the data sets.
  - `saves`: The pre-trained weights of different networks.
  - `checkpoints`: To save the trained models.
 
-### Model Training and Evaluation
+## Model Training and Evaluation
 Please use **train_fsl.py** and follow the instructions below. FEAT meta-learns the embedding adaptation process such that all the training instance embeddings in a task is adapted, based on their contextual task information, using Transformer. The file will automatically evaluate the model on the meta-test set with 10,000 tasks after given epochs.
 
-#### Arguments
+## Arguments
 The train_fsl.py takes the following command line options (details are in the `model/utils.py`):
 
 **Task Related Arguments**
@@ -149,7 +149,7 @@ The train_fsl.py takes the following command line options (details are in the `m
 
 Running the command without arguments will train the models with the default hyper-parameter values. Loss changes will be recorded as a tensorboard file.
 
-#### FEAT Approach
+## Training scripts for FEAT
 
 For example, to train the 1-shot/5-shot 5-way FEAT model with ConvNet backbone on MiniImageNet:
 
