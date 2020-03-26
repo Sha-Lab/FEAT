@@ -138,6 +138,7 @@ to train the 1-shot/5-shot 5-way FEAT model with ResNet-12 backbone on TieredIma
 
 Results on the MiniImageNet:
 |  Setups  | 1-Shot 5-Way | 1-Shot 5-Way | 5-Shot 5-Way | 5-Shot 5-Way |
+|:--------:|:------------:|:------------:|:------------:|:------------:|
 | Backbone |    ConvNet   |    ResNet    |    ConvNet   |    ResNet    |
 | ProtoNet |     52.61    |     62.39    |     71.33    |     80.53    |
 |  BILSTM  |     52.13    |     63.90    |     69.15    |     80.63    |
@@ -147,6 +148,7 @@ Results on the MiniImageNet:
 
 Results on the TieredImageNet with ResNet-12 backbone:
 |  Setups  | 1-Shot 5-Way | 5-Shot 5-Way |
+|:--------:|:------------:|:------------:|
 | ProtoNet |     68.23    |     84.03    |
 |  BILSTM  |     68.14    |     84.23    |
 | DEEPSETS |     68.59    |     84.36    |
