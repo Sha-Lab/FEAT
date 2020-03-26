@@ -18,7 +18,7 @@ We propose a novel model-based approach to adapt the instance embeddings to the 
 
 <img src='imgs/architecture.png' width='640' height='280'>
 
-## Results
+## Standard Few-shot Learning Results
 
 Experimental results on few-shot learning datasets with ResNet-12 backbone (Same as [this repo](https://github.com/kjunelee/MetaOptNet)). We report average results with 10,000 randomly sampled few-shot learning episodes for stablized evaluation.
 
