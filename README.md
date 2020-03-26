@@ -1,13 +1,41 @@
 # Few-Shot Learning via Embedding Adaptation with Set-to-Set Functions
-The code repository for "[Few-Shot Learning via Embedding Adaptation with Set-to-Set Functions](https://arxiv.org/abs/1812.03664)" (Accepted by CVPR 2020) in PyTorch.
+The code repository for "[Few-Shot Learning via Embedding Adaptation with Set-to-Set Functions](https://arxiv.org/abs/1812.03664)" (Accepted by CVPR 2020) in PyTorch. If you use any content of this repo for your work, please cite the following bib entry:
 
-## Few-Shot Embedding Adaptation with Transformer
+    @inproceedings{ye2020fewshot,
+      author    = {Han-Jia Ye and
+                   Hexiang Hu and
+                   De-Chuan Zhan and
+                   Fei Sha},
+      title     = {Few-Shot Learning via Embedding Adaptation with Set-to-Set Functions},
+      booktitle = {Computer Vision and Pattern Recognition (CVPR)},
+      year      = {2020}
+    }
 
-Learning with limited data is a key challenge for visual recognition. Many few-shot learning methods address this challenge by learning an instance embedding function from seen classes and apply the function to instances from unseen classes with limited labels. This style of transfer learning is task-agnostic: the embedding function is not learned optimally discriminative with respect to the unseen classes, where discerning among them leads to the target task. In this paper, we propose a novel approach to adapt the instance embeddings to the target classification task with a #set-to-set# function, yielding embeddings that are task-specific and are discriminative. We empirically investigated various instantiations of such set-to-set functions and observed the Transformer is most effective --- as it naturally satisfies key properties of our desired model. We denote this model as FEAT (few-shot embedding adaptation w/ Transformer) and validate it on both the standard few-shot classification benchmark and four extended few-shot learning settings with essential use cases, i.e., cross-domain, transductive, generalized few-shot learning, and low-shot learning. It archived consistent improvements over baseline models as well as previous methods and established the new state-of-the-art results on two benchmarks. 
+## Few-Shot Embedding Adaptation with Set-to-Set Functions
 
-![Few-Shot Learning via Transformer](imgs/teaser.PNG)
+We propose a novel model-based approach to adapt the instance embeddings to the target classification task with a #set-to-set# function, yielding embeddings that are task-specific and are discriminative. We empirically investigated various instantiations of such set-to-set functions and observed the Transformer is most effective --- as it naturally satisfies key properties of our desired model. We denote our method as Few-shot Embedding Adaptation with Transformer (FEAT).
 
 ![architecture compare](imgs/architecture.png)
+
+## Results
+
+Results on the MiniImageNet with ResNet-12 backbone:
+|  Setups  | 1-Shot 5-Way | 5-Shot 5-Way |   Link to Weights |
+|:--------:|:------------:|:------------:|:-----------------:|
+| ProtoNet |     62.39    |     80.53    | [Coming Soon]() |
+|  BILSTM  |     63.90    |     80.63    | [Coming Soon]() |
+| DEEPSETS |     64.14    |     80.93    | [Coming Soon]() |
+|    GCN   |     64.50    |     81.65    | [Coming Soon]() |
+|   FEAT   |   **66.78**  |   **82.05**  | [Coming Soon]() |
+
+Results on the TieredImageNet with ResNet-12 backbone:
+|  Setups  | 1-Shot 5-Way | 5-Shot 5-Way |   Link to Weights |
+|:--------:|:------------:|:------------:|:-----------------:|
+| ProtoNet |     68.23    |     84.03    | [Coming Soon]() |
+|  BILSTM  |     68.14    |     84.23    | [Coming Soon]() |
+| DEEPSETS |     68.59    |     84.36    | [Coming Soon]() |
+|    GCN   |     68.20    |     84.64    | [Coming Soon]() |
+|   FEAT   |   **70.80**  |   **84.79**  | [Coming Soon]() |
 
 ### Prerequisites
 
@@ -49,7 +77,7 @@ Please use **train_fsl.py** and follow the instructions below. FEAT meta-learns 
 #### Arguments
 The train_fsl.py takes the following command line options (details are in the `model/utils.py`):
 
-## Task Related Arguments ## 
+**Task Related Arguments**
 - `dataset`: Option for the dataset (`MiniImageNet`, `TieredImageNet`, or `CUB`), default to `MiniImageNet`
 
 - `way`: The number of classes in a few-shot task during meta-training, default to `5`
@@ -64,7 +92,7 @@ The train_fsl.py takes the following command line options (details are in the `m
 
 - `eval_query`: Number of instances in each class to evaluate the performance during meta-test, default to `15`
 
-## Optimization Related Arguments ## 
+**Optimization Related Arguments**
 - `max_epoch`: The maximum number of training epochs, default to `200`
 
 - `episodes_per_epoch`: The number of tasks sampled in each epoch, default to `100`
@@ -89,7 +117,7 @@ The train_fsl.py takes the following command line options (details are in the `m
 
 - `weight_decay`: The weight_decay value for SGD optimizer, default to `0.0005`
 
-## Model Related Arguments ## 
+**Model Related Arguments**
 - `model_class`: The model to use during meta-learning. We provide implementations for baselines (`MatchNet` and `ProtoNet`), set-to-set functions (`BILSTM`, `DeepSet`, `GCN`, and our `FEAT`). We also include an instance-specific embedding adaptation approach `FEAT`, which is discussed in the old version of the paper. Default to `FEAT`
 
 - `use_euclidean`: Use the euclidean distance or the cosine similarity to compute pairwise distances. We use the euclidean distance in the paper. Default to `False`
@@ -102,7 +130,7 @@ The train_fsl.py takes the following command line options (details are in the `m
 
 - `temperature2`: Temperature over the logits in the regularizer, we divide logits with this value. This is specially designed for the contrastive regularizer. Default to `1`
 
-## Other Arguments ## 
+**Other Arguments** 
 - `orig_imsize`: Whether to resize the images before loading the data into the memory. `-1` means we do not resize the images and do not read all images into the memory. Default to `-1`
 
 - `multi_gpu`: Whether to use multiple gpus during meta-training, default to `False`
@@ -133,41 +161,6 @@ to train the 1-shot/5-shot 5-way FEAT model with ResNet-12 backbone on TieredIma
 
     $ python train_fsl.py  --max_epoch 200 --model_class FEAT  --backbone_class Res12 --dataset TieredImageNet --way 5 --eval_way 5 --shot 1 --eval_shot 1 --query 15 --eval_query 15 --balance 0.1 --temperature 64 --temperature2 64 --lr 0.0002 --lr_mul 10 --lr_scheduler step --step_size 20 --gamma 0.5 --gpu 0 --init_weights ./saves/initialization/tieredimagenet/Res12-pre.pth --eval_interval 1  --use_euclidean
     $ python train_fsl.py  --max_epoch 200 --model_class FEAT  --backbone_class Res12 --dataset TieredImageNet --way 5 --eval_way 5 --shot 5 --eval_shot 5 --query 15 --eval_query 15 --balance 0.1 --temperature 32 --temperature2 64 --lr 0.0002 --lr_mul 10 --lr_scheduler step --step_size 40 --gamma 0.5 --gpu 0 --init_weights ./saves/initialization/tieredimagenet/Res12-pre.pth --eval_interval 1  --use_euclidean
-
-#### Results
-
-Results on the MiniImageNet:
-|  Setups  | 1-Shot 5-Way | 1-Shot 5-Way | 5-Shot 5-Way | 5-Shot 5-Way |
-|:--------:|:------------:|:------------:|:------------:|:------------:|
-| Backbone |    ConvNet   |    ResNet    |    ConvNet   |    ResNet    |
-| ProtoNet |     52.61    |     62.39    |     71.33    |     80.53    |
-|  BILSTM  |     52.13    |     63.90    |     69.15    |     80.63    |
-| DEEPSETS |     54.41    |     64.14    |     70.96    |     80.93    |
-|    GCN   |     53.25    |     64.50    |     70.59    |     81.65    |
-|   FEAT   |     55.15    |     66.78    |     71.61    |     82.05    |
-
-Results on the TieredImageNet with ResNet-12 backbone:
-|  Setups  | 1-Shot 5-Way | 5-Shot 5-Way |
-|:--------:|:------------:|:------------:|
-| ProtoNet |     68.23    |     84.03    |
-|  BILSTM  |     68.14    |     84.23    |
-| DEEPSETS |     68.59    |     84.36    |
-|    GCN   |     68.20    |     84.64    |
-|   FEAT   |     70.80    |     84.79    |
-
-## .bib citation
-If this repo helps in your work, please cite the following paper:
-
-    @inproceedings{ye2020fewshot,
-      author    = {Han-Jia Ye and
-                   Hexiang Hu and
-                   De-Chuan Zhan and
-                   Fei Sha},
-      title     = {Few-Shot Learning via Embedding Adaptation with Set-to-Set Functions},
-      booktitle = {Computer Vision and Pattern Recognition (CVPR)},
-      year      = {2020}
-    }
-
 
 ## Acknowledgment
 We thank the following repos providing helpful components/functions in our work.
