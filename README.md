@@ -3,7 +3,7 @@ The code repository for "[Few-Shot Learning via Embedding Adaptation with Set-to
 
 ## Few-Shot Embedding Adaptation with Transformer
 
-Learning with limited data is a key challenge for visual recognition. Many few-shot learning methods address this challenge by learning an instance embedding function from seen classes and apply the function to instances from unseen classes with limited labels. This style of transfer learning is task-agnostic: the embedding function is not learned optimally discriminative with respect to the unseen classes, where discerning among them leads to the target task. In this paper, we propose a novel approach to adapt the instance embeddings to the target classification task with a #set-to-set# function, yielding embeddings that are task-specific and are discriminative. We empirically investigated various instantiations of such set-to-set functions and observed the Transformer is most effective --- as it naturally satisfies key properties of our desired model. We denote this model as FEAT (few-shot embedding adaptation w/ Transformer) and validate it on both the standard few-shot classification benchmark and four extended few-shot learning settings with essential use cases, i.e., cross-domain, transductive, generalized few-shot learning, and low-shot learning. It archived consistent improvements over baseline models as well as previous methods, and established the new state-of-the-art results on two benchmarks. 
+Learning with limited data is a key challenge for visual recognition. Many few-shot learning methods address this challenge by learning an instance embedding function from seen classes and apply the function to instances from unseen classes with limited labels. This style of transfer learning is task-agnostic: the embedding function is not learned optimally discriminative with respect to the unseen classes, where discerning among them leads to the target task. In this paper, we propose a novel approach to adapt the instance embeddings to the target classification task with a #set-to-set# function, yielding embeddings that are task-specific and are discriminative. We empirically investigated various instantiations of such set-to-set functions and observed the Transformer is most effective --- as it naturally satisfies key properties of our desired model. We denote this model as FEAT (few-shot embedding adaptation w/ Transformer) and validate it on both the standard few-shot classification benchmark and four extended few-shot learning settings with essential use cases, i.e., cross-domain, transductive, generalized few-shot learning, and low-shot learning. It archived consistent improvements over baseline models as well as previous methods and established the new state-of-the-art results on two benchmarks. 
 
 ![Few-Shot Learning via Transformer](imgs/teaser.PNG)
 
@@ -17,7 +17,7 @@ The following packages are required to run the scripts:
 
 - Package [tensorboardX](https://github.com/lanpa/tensorboardX)
 
-- Dataset: please download dataset and put images into the folder data/[name of dataset, miniimagenet or cub]/images
+- Dataset: please download the dataset and put images into the folder data/[name of the dataset, miniimagenet or cub]/images
 
 - Pre-trained weights: please download the [pre-trained weights](https://drive.google.com/open?id=14Jn1t9JxH-CxjfWy4JmVpCxkC9cDqqfE) of the encoder if needed. The pre-trained weights can be downloaded by the script [download_weight.sh](download_weight.sh)
 
@@ -25,10 +25,10 @@ The following packages are required to run the scripts:
 
 #### MiniImageNet Dataset
 
-The MiniImageNet dataset is a subset of the ImageNet that includes a total number of 100 classes and 600 examples per class. We follow the [previous setup](https://github.com/twitter/meta-learning-lstm), and use 64 classes as SEEN categories, 16 and 20 as two sets of UNSEEN categories for model validation and evaluation respectively.
+The MiniImageNet dataset is a subset of the ImageNet that includes a total number of 100 classes and 600 examples per class. We follow the [previous setup](https://github.com/twitter/meta-learning-lstm), and use 64 classes as SEEN categories, 16 and 20 as two sets of UNSEEN categories for model validation and evaluation, respectively.
 
 #### CUB Dataset
-[Caltech-UCSD Birds (CUB) 200-2011 dataset](http://www.vision.caltech.edu/visipedia/CUB-200-2011.html) is initially designed for fine-grained classification. It contains in total 11,788 images of birds over 200 species. On CUB, we randomly sampled 100 species as SEEN classes, another two 50 species are used as two UNSEEN sets. We crop all images with given bounding box before training. We only test CUB with ConvNet backbone in our work.
+[Caltech-UCSD Birds (CUB) 200-2011 dataset](http://www.vision.caltech.edu/visipedia/CUB-200-2011.html) is initially designed for fine-grained classification. It contains in total 11,788 images of birds over 200 species. On CUB, we randomly sampled 100 species as SEEN classes, and another two 50 species are used as two UNSEEN sets. We crop all images with given bounding boxes before training. We only test CUB with the ConvNet backbone in our work.
 
 #### TieredImageNet Dataset
 [TieredImageNet](https://github.com/renmengye/few-shot-ssl-public) is a large-scale dataset  with more categories, which contains 351, 97, and 160 categoriesfor model training, validation, and evaluation, respectively. The dataset can also be download from [here](https://github.com/kjunelee/MetaOptNet).
@@ -44,7 +44,7 @@ To reproduce our experiments with FEAT, please use **train_fsl.py**. There are f
  - `checkpoints`: To save the trained models.
 
 ### Model Training and Evaluation
-Please use **train_fsl.py** and follow the instructions blow. FEAT meta-learns the embedding adaptation process such that all the training instance embeddings in a task is adapted, based on their contextual task information, using Transformer. The file will automatically evaluate the model on the meta-test set with 10,000 tasks after given epoches.
+Please use **train_fsl.py** and follow the instructions below. FEAT meta-learns the embedding adaptation process such that all the training instance embeddings in a task is adapted, based on their contextual task information, using Transformer. The file will automatically evaluate the model on the meta-test set with 10,000 tasks after given epochs.
 
 #### Arguments
 The train_fsl.py takes the following command line options (details are in the `model/utils.py`):
@@ -77,7 +77,7 @@ The train_fsl.py takes the following command line options (details are in the `m
 
 - `lr_scheduler`: The scheduler to set the learning rate (`step`, `multistep`, or `cosine`), default to `step`
 
-- `step_size`: The step scheduler to decrease the learning rate. Set it to a single value if choose the `step` scheduler, and provide multiple values when choose the `multistep` scheduler. Default to `20`
+- `step_size`: The step scheduler to decrease the learning rate. Set it to a single value if choose the `step` scheduler and provide multiple values when choosing the `multistep` scheduler. Default to `20`
 
 - `gamma`: Learning rate ratio for `step` or `multistep` scheduler, default to `0.2`
 
@@ -115,47 +115,42 @@ The train_fsl.py takes the following command line options (details are in the `m
 
 - `save_dir`: The path to save the learned models, default to `./checkpoints`
 
-Running the command without arguments will train the models with the default hyperparamters values. Loss changes will be recorded as a tensorboard file.
+Running the command without arguments will train the models with the default hyper-parameter values. Loss changes will be recorded as a tensorboard file.
 
 #### FEAT Approach
 
 For example, to train the 1-shot/5-shot 5-way FEAT model with ConvNet backbone on MiniImageNet:
 
     $ python train_fsl.py  --max_epoch 200 --model_class FEAT --use_euclidean --backbone_class ConvNet --dataset MiniImageNet --way 5 --eval_way 5 --shot 1 --eval_shot 1 --query 15 --eval_query 15 --balance 1 --temperature 64 --temperature2 16 --lr 0.0001 --lr_mul 10 --lr_scheduler step --step_size 20 --gamma 0.5 --gpu 8 --init_weights ./saves/initialization/miniimagenet/con-pre.pth --eval_interval 1
-	$ python train_fsl.py  --max_epoch 200 --model_class FEAT --use_euclidean --backbone_class ConvNet --dataset MiniImageNet --way 5 --eval_way 5 --shot 5 --eval_shot 5 --query 15 --eval_query 15 --balance 0.1 --temperature 32 --temperature2 64 --lr 0.0001 --lr_mul 10 --lr_scheduler step --step_size 20 --gamma 0.5 --gpu 14 --init_weights ./saves/initialization/miniimagenet/con-pre.pth --eval_interval 1
+    $ python train_fsl.py  --max_epoch 200 --model_class FEAT --use_euclidean --backbone_class ConvNet --dataset MiniImageNet --way 5 --eval_way 5 --shot 5 --eval_shot 5 --query 15 --eval_query 15 --balance 0.1 --temperature 32 --temperature2 64 --lr 0.0001 --lr_mul 10 --lr_scheduler step --step_size 20 --gamma 0.5 --gpu 14 --init_weights ./saves/initialization/miniimagenet/con-pre.pth --eval_interval 1
 
 to train the 1-shot/5-shot 5-way FEAT model with ResNet-12 backbone on MiniImageNet:
 
     $ python train_fsl.py  --max_epoch 200 --model_class FEAT  --backbone_class Res12 --dataset MiniImageNet --way 5 --eval_way 5 --shot 1 --eval_shot 1 --query 15 --eval_query 15 --balance 0.01 --temperature 64 --temperature2 64 --lr 0.0002 --lr_mul 10 --lr_scheduler step --step_size 40 --gamma 0.5 --gpu 1 --init_weights ./saves/initialization/miniimagenet/Res12-pre.pth --eval_interval 1 --use_euclidean
-	$ python train_fsl.py  --max_epoch 200 --model_class FEAT  --backbone_class Res12 --dataset MiniImageNet --way 5 --eval_way 5 --shot 5 --eval_shot 5 --query 15 --eval_query 15 --balance 0.1 --temperature 64 --temperature2 32 --lr 0.0002 --lr_mul 10 --lr_scheduler step --step_size 40 --gamma 0.5 --gpu 0 --init_weights ./saves/initialization/miniimagenet/Res12-pre.pth --eval_interval 1 --use_euclidean
+    $ python train_fsl.py  --max_epoch 200 --model_class FEAT  --backbone_class Res12 --dataset MiniImageNet --way 5 --eval_way 5 --shot 5 --eval_shot 5 --query 15 --eval_query 15 --balance 0.1 --temperature 64 --temperature2 32 --lr 0.0002 --lr_mul 10 --lr_scheduler step --step_size 40 --gamma 0.5 --gpu 0 --init_weights ./saves/initialization/miniimagenet/Res12-pre.pth --eval_interval 1 --use_euclidean
 
 to train the 1-shot/5-shot 5-way FEAT model with ResNet-12 backbone on TieredImageNet:
 
-	$ python train_fsl.py  --max_epoch 200 --model_class FEAT  --backbone_class Res12 --dataset TieredImageNet --way 5 --eval_way 5 --shot 1 --eval_shot 1 --query 15 --eval_query 15 --balance 0.1 --temperature 64 --temperature2 64 --lr 0.0002 --lr_mul 10 --lr_scheduler step --step_size 20 --gamma 0.5 --gpu 0 --init_weights ./saves/initialization/tieredimagenet/Res12-pre.pth --eval_interval 1  --use_euclidean
-	$ python train_fsl.py  --max_epoch 200 --model_class FEAT  --backbone_class Res12 --dataset TieredImageNet --way 5 --eval_way 5 --shot 5 --eval_shot 5 --query 15 --eval_query 15 --balance 0.1 --temperature 32 --temperature2 64 --lr 0.0002 --lr_mul 10 --lr_scheduler step --step_size 40 --gamma 0.5 --gpu 0 --init_weights ./saves/initialization/tieredimagenet/Res12-pre.pth --eval_interval 1  --use_euclidean
+    $ python train_fsl.py  --max_epoch 200 --model_class FEAT  --backbone_class Res12 --dataset TieredImageNet --way 5 --eval_way 5 --shot 1 --eval_shot 1 --query 15 --eval_query 15 --balance 0.1 --temperature 64 --temperature2 64 --lr 0.0002 --lr_mul 10 --lr_scheduler step --step_size 20 --gamma 0.5 --gpu 0 --init_weights ./saves/initialization/tieredimagenet/Res12-pre.pth --eval_interval 1  --use_euclidean
+    $ python train_fsl.py  --max_epoch 200 --model_class FEAT  --backbone_class Res12 --dataset TieredImageNet --way 5 --eval_way 5 --shot 5 --eval_shot 5 --query 15 --eval_query 15 --balance 0.1 --temperature 32 --temperature2 64 --lr 0.0002 --lr_mul 10 --lr_scheduler step --step_size 40 --gamma 0.5 --gpu 0 --init_weights ./saves/initialization/tieredimagenet/Res12-pre.pth --eval_interval 1  --use_euclidean
 
 #### Results
 
 Results on the MiniImageNet:
 |  Setups  | 1-Shot 5-Way | 1-Shot 5-Way | 5-Shot 5-Way | 5-Shot 5-Way |
-|:--------:|:------------:|:------------:|:------------:|:------------:|
 | Backbone |    ConvNet   |    ResNet    |    ConvNet   |    ResNet    |
-|:--------:|:------------:|:------------:|:------------:|:------------:|
 | ProtoNet |     52.61    |     62.39    |     71.33    |     80.53    |
 |  BILSTM  |     52.13    |     63.90    |     69.15    |     80.63    |
 | DEEPSETS |     54.41    |     64.14    |     70.96    |     80.93    |
 |    GCN   |     53.25    |     64.50    |     70.59    |     81.65    |
-|:--------:|:------------:|:------------:|:------------:|:------------:|
 |   FEAT   |     55.15    |     66.78    |     71.61    |     82.05    |
 
 Results on the TieredImageNet with ResNet-12 backbone:
 |  Setups  | 1-Shot 5-Way | 5-Shot 5-Way |
-|:--------:|:------------:|:------------:|
 | ProtoNet |     68.23    |     84.03    |
 |  BILSTM  |     68.14    |     84.23    |
 | DEEPSETS |     68.59    |     84.36    |
 |    GCN   |     68.20    |     84.64    |
-|:--------:|:------------:|:------------:|
 |   FEAT   |     70.80    |     84.79    |
 
 ## .bib citation
@@ -173,7 +168,7 @@ If this repo helps in your work, please cite the following paper:
 
 
 ## Acknowledgment
-We thank following repos providing helpful components/functions in our work.
+We thank the following repos providing helpful components/functions in our work.
 - [ProtoNet](https://github.com/cyvius96/prototypical-network-pytorch)
 
 - [MatchingNet](https://github.com/gitabcworld/MatchingNetworks)
