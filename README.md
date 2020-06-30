@@ -1,6 +1,6 @@
 # Few-Shot Learning via Embedding Adaptation with Set-to-Set Functions
 
-The code repository for "[Few-Shot Learning via Embedding Adaptation with Set-to-Set Functions](https://arxiv.org/abs/1812.03664)" (Accepted by CVPR 2020) in PyTorch. If you use any content of this repo for your work, please cite the following bib entry:
+The code repository for "Few-Shot Learning via Embedding Adaptation with Set-to-Set Functions" [[paper]](https://openaccess.thecvf.com/content_CVPR_2020/papers/Ye_Few-Shot_Learning_via_Embedding_Adaptation_With_Set-to-Set_Functions_CVPR_2020_paper.pdf) [[ArXiv]](https://arxiv.org/abs/1812.03664) [[slides]](https://drive.google.com/file/d/17LpnSuT-fy-Je7hWxHV7o61jVFDQf3TK/view?usp=sharing) [[poster]](https://drive.google.com/file/d/1R4_eoxI9VrfUMzgcoBG9veJG2fhhQzxi/view?usp=sharing) (Accepted by CVPR 2020) in PyTorch. If you use any content of this repo for your work, please cite the following bib entry:
 
     @inproceedings{ye2020fewshot,
       author    = {Han-Jia Ye and
@@ -8,7 +8,8 @@ The code repository for "[Few-Shot Learning via Embedding Adaptation with Set-to
                    De-Chuan Zhan and
                    Fei Sha},
       title     = {Few-Shot Learning via Embedding Adaptation with Set-to-Set Functions},
-      booktitle = {Computer Vision and Pattern Recognition (CVPR)},
+      booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+      pages     = {8808--8817},
       year      = {2020}
     }
 
@@ -23,23 +24,23 @@ We propose a novel model-based approach to adapt the instance embeddings to the 
 Experimental results on few-shot learning datasets with ResNet-12 backbone (Same as [this repo](https://github.com/kjunelee/MetaOptNet)). We report average results with 10,000 randomly sampled few-shot learning episodes for stablized evaluation.
 
 **MiniImageNet Dataset**
-|  Setups  | 1-Shot 5-Way | 5-Shot 5-Way |   Link to Weights |
+|  Setups  | 1-Shot 5-Way | 5-Shot 5-Way |   [Link to Weights](https://drive.google.com/drive/folders/1PgjybQHxjP65MvcI4C1vnMCPsvsoaAFJ?usp=sharing) |
 |:--------:|:------------:|:------------:|:-----------------:|
-| ProtoNet |     62.39    |     80.53    | [Coming Soon]() |
-|  BILSTM  |     63.90    |     80.63    | [Coming Soon]() |
-| DEEPSETS |     64.14    |     80.93    | [Coming Soon]() |
-|    GCN   |     64.50    |     81.65    | [Coming Soon]() |
-|   FEAT   |   **66.78**  |   **82.05**  | [Coming Soon]() |
+| ProtoNet |     62.39    |     80.53    | [1-Shot](https://drive.google.com/file/d/1zfG8C9ZgZfSgmxtxZiaC0ahOomTXtvBq/view?usp=sharing),   [5-Shot](https://drive.google.com/file/d/1NVMwb417dneI8YCjFakbA1VeGtyWCpCO/view?usp=sharing) |
+|  BILSTM  |     63.90    |     80.63    | [1-Shot](https://drive.google.com/file/d/1t_W-EY1dgeWdGab5sqOPbGcxGqegxrIG/view?usp=sharing),   [5-Shot](https://drive.google.com/file/d/1ZnqRNtnIzXkq4kZTvHxo_mfAggUm4lSb/view?usp=sharing)|
+| DEEPSETS |     64.14    |     80.93    | [1-Shot](https://drive.google.com/file/d/1l2mSVMwrgQYR9hHo1-9AZATp16PcqcXx/view?usp=sharing),   [5-Shot](https://drive.google.com/file/d/179NnaVbx8nNlw8Op4hzBhLz2mjX4iIhz/view?usp=sharing)|
+|    GCN   |     64.50    |     81.65    | [1-Shot](https://drive.google.com/file/d/13ITR3aF5XAzvDIsLa-Qzzf7zuNoy8W2_/view?usp=sharing),   [5-Shot](https://drive.google.com/file/d/1T2us_VCl3MBKwf-6M4FoCJjda7T8-umV/view?usp=sharing)|
+|   FEAT   |   **66.78**  |   **82.05**  | [1-Shot](https://drive.google.com/file/d/1ixqw1l9XVxl3lh1m5VXkctw6JssahGbQ/view?usp=sharing),   [5-Shot](https://drive.google.com/file/d/1tCU52WiK6JBydnALI_gF9nYiFCNvvT1A/view?usp=sharing)|
 
 **TieredImageNet Dataset**
 
-|  Setups  | 1-Shot 5-Way | 5-Shot 5-Way |   Link to Weights |
+|  Setups  | 1-Shot 5-Way | 5-Shot 5-Way |   [Link to Weights](https://drive.google.com/drive/folders/1L15ddQJysiZEVTEMYy7do2_XblGIViyy?usp=sharing) |
 |:--------:|:------------:|:------------:|:-----------------:|
-| ProtoNet |     68.23    |     84.03    | [Coming Soon]() |
-|  BILSTM  |     68.14    |     84.23    | [Coming Soon]() |
-| DEEPSETS |     68.59    |     84.36    | [Coming Soon]() |
-|    GCN   |     68.20    |     84.64    | [Coming Soon]() |
-|   FEAT   |   **70.80**  |   **84.79**  | [Coming Soon]() |
+| ProtoNet |     68.23    |     84.03    | [1-Shot](https://drive.google.com/file/d/19pF7IBkxukOaC-m1CKxq_bc5Sq1Idk_R/view?usp=sharing),   [5-Shot](https://drive.google.com/file/d/1YjSl2TBEAb7ZE0SeyjwwoM0G5cP70GoA/view?usp=sharing) |
+|  BILSTM  |     68.14    |     84.23    | [1-Shot](https://drive.google.com/file/d/1_fP2E0e_JsXP7EYAY-jFHpev1y-VMxTb/view?usp=sharing),   [5-Shot](https://drive.google.com/file/d/1wBi2QKMxGVVdWpxAIpUxpOfCs3hNDcnP/view?usp=sharing) |
+| DEEPSETS |     68.59    |     84.36    | [1-Shot](https://drive.google.com/file/d/1Uuv5zeqHpwq2Prk70CpkPtsaI49z2t7y/view?usp=sharing),   [5-Shot](https://drive.google.com/file/d/1vtV83CjnH2I61bpuEga1kvf0ZiXD7Q23/view?usp=sharing) |
+|    GCN   |     68.20    |     84.64    | [1-Shot](https://drive.google.com/file/d/1j_QLHAL7RFZRplKjl7XC_Ma9kl4GOySv/view?usp=sharing),   [5-Shot](https://drive.google.com/file/d/1diY1IIO8u12EsDBkeueh8eQGBBh5CjVW/view?usp=sharing) |
+|   FEAT   |   **70.80**  |   **84.79**  | [1-Shot](https://drive.google.com/file/d/1M93jdOjAn8IihICPKJg8Mb4B-eYDSZfE/view?usp=sharing),   [5-Shot](https://drive.google.com/file/d/1nM4HGGZmMpC57cpe7cqY3WdpL8WlyRay/view?usp=sharing) |
 
 ## Prerequisites
 
