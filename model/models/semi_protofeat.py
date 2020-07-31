@@ -94,7 +94,7 @@ class SemiProtoFEAT(FewShotModel):
         num_batch, num_shot, num_way, emb_dim = x_shot.shape
         num_pool_shot = x_pool.shape[1]
         num_pool = num_pool_shot * num_way
-        label_support = torch.arange(self.args.way).repeat(self.args.shot).type(torch.LongTensor)
+        label_support = torch.arange(num_way).repeat(num_shot).type(torch.LongTensor)
         label_support_onehot = one_hot(label_support, num_way)   
         label_support_onehot = label_support_onehot.unsqueeze(0).repeat([num_batch, 1, 1])
         if torch.cuda.is_available():
