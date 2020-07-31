@@ -123,7 +123,7 @@ The train_fsl.py takes the following command line options (details are in the `m
 - `weight_decay`: The weight_decay value for SGD optimizer, default to `0.0005`
 
 **Model Related Arguments**
-- `model_class`: The model to use during meta-learning. We provide implementations for baselines (`MatchNet` and `ProtoNet`), set-to-set functions (`BILSTM`, `DeepSet`, `GCN`, and our `FEAT`). We also include an instance-specific embedding adaptation approach `FEAT`, which is discussed in the old version of the paper. Default to `FEAT`
+- `model_class`: The model to use during meta-learning. We provide implementations for baselines (`MatchNet` and `ProtoNet`), set-to-set functions (`BILSTM`, `DeepSet`, `GCN`, and our `FEAT` variants). We also include an instance-specific embedding adaptation approach `FEAT`, which is discussed in the old version of the paper. `SemiFEAT` is the one which combines the unlabeled query set instances into the feature adaptation in a transductive manner, while `SemiProtoFEAT` applies Semi-ProtoNet over the transductively transformed embeddings of `SemiFEAT`. Default to `FEAT`
 
 - `use_euclidean`: Use the euclidean distance or the cosine similarity to compute pairwise distances. We use the euclidean distance in the paper. Default to `False`
 
